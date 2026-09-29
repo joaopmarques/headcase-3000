@@ -332,6 +332,24 @@ const GRUNTS = {
   ooh: [
     [{ v: 'o', to: 'u', f: [350, 450], d: 0.4 }],
   ],
+  sob: [
+    [0, 1, 2].map((i) => ({ v: 'u', to: 'a', f: [420 - i * 30, 300 - i * 30], d: 0.16, gap: 0.08 })),
+  ],
+  ah: [
+    [{ v: 'a', f: [300, 360], d: 0.3, gap: 0.25 }, { v: 'a', f: [340, 420], d: 0.35 }],
+  ],
+  choo: [
+    [{ v: 'u', f: [520, 260], d: 0.35 }],
+  ],
+  hic: [
+    [{ v: 'i', f: [700, 900], d: 0.07 }],
+  ],
+  bleh: [
+    [{ v: 'e', to: 'u', f: [240, 150], d: 0.45 }],
+  ],
+  aww: [
+    [{ v: 'a', to: 'o', f: [380, 260], d: 0.6 }],
+  ],
   uhoh: [
     [{ v: 'a', to: 'u', f: [400, 380], d: 0.14, gap: 0.06 }, { v: 'o', f: [300, 280], d: 0.22 }],
   ],
@@ -422,3 +440,49 @@ export function micOn() { tone('sine', [880, 1320], 0.12, 0.2); }
 export function micOff() { tone('sine', [1320, 660], 0.12, 0.2); }
 
 export function recBeep() { tone('square', [1000, 1000], 0.08, 0.15); }
+
+export function sting() {
+  tone('sawtooth', [1400, 2200], 0.08, 0.15);
+  burst(0.05, 0.5, { type: 'highpass', f0: 4000, when: 0.06 });
+}
+
+export function sneezeBlast() {
+  burst(0.4, 0.9, { type: 'lowpass', f0: 5000, f1: 400, q: 1 });
+  tone('sine', [200, 60], 0.3, 0.6);
+}
+
+export function hicPop() {
+  tone('sine', [300, 700], 0.05, 0.35);
+}
+
+export function tongueClick() {
+  tone('square', [1800, 900], 0.03, 0.2);
+}
+
+// Bee swarm drone. set(level 0..1) follows how close the bees are.
+export function startBuzz() {
+  const c = ac();
+  const g = c.createGain();
+  g.gain.value = 0;
+  const f = c.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 2;
+  f.connect(g).connect(master);
+  const oscs = [218, 231, 244].map((hz) => {
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = hz;
+    const lfo = c.createOscillator(), lg = c.createGain();
+    lfo.frequency.value = rnd(5, 11); lg.gain.value = rnd(8, 18);
+    lfo.connect(lg).connect(o.frequency);
+    o.connect(f);
+    o.start(); lfo.start();
+    return [o, lfo];
+  });
+  return {
+    set(level) { g.gain.setTargetAtTime(Math.min(0.14, level * 0.14), c.currentTime, 0.08); },
+    stop() {
+      g.gain.setTargetAtTime(0, c.currentTime, 0.05);
+      oscs.forEach(([o, l]) => { o.stop(c.currentTime + 0.3); l.stop(c.currentTime + 0.3); });
+    },
+  };
+}

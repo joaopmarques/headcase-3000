@@ -33,4 +33,6 @@ Open http://localhost:5173. There is no build step and no install. Three.js, Med
 - `js/mimic.js`: records the mic and plays it back in a silly voice with lip-sync
 - `js/recorder.js`: records 6-second clips of the stage with sound
 - `js/food.js`: the snack tray and drag-to-mouth feeding
+- `js/bees.js`: the bee swarm, stings, and swatting
+- `js/emotions.js`: cry, sneeze, wink, love, sick, scream, hiccups, and rage sweat
 - `js/main.js`: scene, tools, actions, rage-o-meter, UI

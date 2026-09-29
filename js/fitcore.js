@@ -51,6 +51,8 @@ export function fallbackFit(canvas) {
   fit.features = {
     eyeL: { ...f(-0.2, -0.06), rx: faceW * 0.09, ry: faceW * 0.07 },
     eyeR: { ...f(0.2, -0.06), rx: faceW * 0.09, ry: faceW * 0.07 },
+    irisL: { ...f(-0.19, -0.055), rx: faceW * 0.035, ry: faceW * 0.035 },
+    irisR: { ...f(0.21, -0.055), rx: faceW * 0.035, ry: faceW * 0.035 },
     nose: f(0, 0.12),
     bridge: f(0, -0.06),
     stache: f(0, 0.22),
@@ -65,5 +67,6 @@ export function fallbackFit(canvas) {
   const s = (u, v) => samplePatch(ctx, W, H, cx + u * faceW, cy + v * faceW, faceW * 0.03);
   fit.skin = mixColors([s(-0.28, 0.1), s(0.28, 0.1), s(0, -0.3)]) ?? [224, 172, 140];
   fit.hair = mixColors([s(0, -0.78), s(-0.3, -0.7), s(0.3, -0.7)]) ?? [60, 40, 30];
+  fit.sclera = [245, 245, 245];
   return fit;
 }

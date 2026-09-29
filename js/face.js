@@ -215,8 +215,21 @@ function landmarkFit(canvas, lms) {
     top: { x: P[10].x, y: P[10].y },
   };
 
+  // Irises: points 468-472 and 473-477 (center + ring). Match each to the nearest eye.
+  const irisOf = (start) => {
+    const c = P[start];
+    const rad = [1, 2, 3, 4].reduce((a, k) => a + dist(c, P[start + k]), 0) / 4;
+    return { x: c.x, y: c.y, rx: rad, ry: rad };
+  };
+  const irisA = irisOf(468), irisB = irisOf(473);
+  const eL = fit.features.eyeL;
+  const aIsL = dist(irisA, eL) < dist(irisB, eL);
+  fit.features.irisL = aIsL ? irisA : irisB;
+  fit.features.irisR = aIsL ? irisB : irisA;
+
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const r = faceW * 0.03;
+  fit.sclera = eyeWhite(ctx, W, H, [[fit.features.eyeL, fit.features.irisL], [fit.features.eyeR, fit.features.irisR]]);
   fit.skin = mixColors([
     samplePatch(ctx, W, H, P[50].x, P[50].y, r),
     samplePatch(ctx, W, H, P[280].x, P[280].y, r),
@@ -229,4 +242,34 @@ function landmarkFit(canvas, lms) {
     samplePatch(ctx, W, H, P[10].x + faceW * 0.22, hy + faceH * 0.03, r),
   ]) ?? fit.skin.map((v) => v * 0.5);
   return fit;
+}
+
+// Eye-white color: the brightest quarter of the pixels inside the eye opening, iris excluded.
+// Squinty or shadowed eyes still come out light, never a skin-colored smudge.
+function eyeWhite(ctx, W, H, eyes) {
+  const px = [];
+  for (const [e, iris] of eyes) {
+    const x0 = Math.max(0, Math.floor(e.x - e.rx)), x1 = Math.min(W, Math.ceil(e.x + e.rx));
+    const y0 = Math.max(0, Math.floor(e.y - e.ry)), y1 = Math.min(H, Math.ceil(e.y + e.ry));
+    if (x1 <= x0 || y1 <= y0) continue;
+    const d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const inEye = ((x - e.x) / (e.rx * 0.7)) ** 2 + ((y - e.y) / (e.ry * 0.6)) ** 2 < 1;
+        const inIris = (x - iris.x) ** 2 + (y - iris.y) ** 2 < (iris.rx * 1.15) ** 2;
+        if (!inEye || inIris) continue;
+        const i = ((y - y0) * (x1 - x0) + (x - x0)) * 4;
+        px.push([d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11, d[i], d[i + 1], d[i + 2]]);
+      }
+    }
+  }
+  const fallback = [232, 226, 218];
+  if (px.length < 8) return fallback;
+  px.sort((a, b) => b[0] - a[0]);
+  const top = px.slice(0, Math.max(4, Math.floor(px.length / 4)));
+  const c = [1, 2, 3].map((k) => top.reduce((s, p) => s + p[k], 0) / top.length);
+  const lum = c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11;
+  // Too dark to read as white? Pull it toward a warm off-white.
+  const t = lum < 170 ? Math.min(0.7, (170 - lum) / 120) : 0;
+  return c.map((v, k) => Math.min(255, lerp(v * 1.05, fallback[k], t)));
 }

@@ -6,6 +6,8 @@ import { Painter, AMMO, AMMO_ORDER, SHARPIE_COLORS } from './paint.js';
 import { Mimic } from './mimic.js';
 import { ClipRecorder } from './recorder.js';
 import { setupFood } from './food.js';
+import { Bees } from './bees.js';
+import { Emotions } from './emotions.js';
 import * as sfx from './audio.js';
 import { voiceState, loadVoices, speak, stopSpeaking, isTalking } from './voice.js';
 import { line, LIES, nonsense, pick } from './lines.js';
@@ -104,6 +106,9 @@ const st = {
   lastChomp: 0,
   fire: 0,
   sour: 0,
+  ptr: null,
+  saccade: new THREE.Vector2(),
+  nextSaccade: 0,
 };
 
 function resize() {
@@ -189,6 +194,25 @@ function stamp(emoji, x, y, cls = '') {
   setTimeout(() => el.remove(), 700);
 }
 
+// ---------- bees + feelings ----------
+const app = {
+  head: () => head, props: () => props, painter: () => painter,
+  rig, camera, stage, fx, sfx, st, line,
+  grunt: (k) => grunt(k), react: (k, o) => react(k, o), addRage: (n) => addRage(n),
+  showBubble: (t, ms) => showBubble(t, ms), talk: (t, o) => talk(t, o),
+  onGone: () => $('[data-action="bees"]').classList.remove('on'),
+};
+const bees = new Bees(app);
+const emotions = new Emotions(app);
+$$('[data-emote]').forEach((b) => b.addEventListener('click', () => {
+  sfx.unlock();
+  if (!head || st.popped) return;
+  st.lastInteraction = now();
+  emotions.play(b.dataset.emote);
+}));
+// Track the pointer anywhere on the page, for the eyes.
+window.addEventListener('pointermove', (e) => { st.ptr = { x: e.clientX, y: e.clientY, t: now() }; });
+
 // ---------- face loading ----------
 const LOADING = [
   'Measuring your nostrils…', 'Inflating the skull…', 'Calibrating cheek jiggle…', 'Consulting the face wizard…',
@@ -245,6 +269,8 @@ function installHead(canvas, fit) {
   rig.add(head.group);
   props = new Props(head);
   painter = new Painter(head);
+  bees.stop(true);
+  emotions.stop();
   st.projectiles.forEach((p) => p.sp.removeFromParent());
   st.projectiles = [];
   st.chew = 0; st.fire = 0; st.sour = 0;
@@ -478,6 +504,8 @@ function sharpieAt(hit) {
 canvas.addEventListener('pointerdown', (e) => {
   sfx.unlock();
   if (!head) return;
+  // Swatting a bee beats whatever tool is in hand.
+  if (bees.active && bees.swatAt(e.clientX, e.clientY)) return;
   const hit = hitTest(e);
   st.pointer = { x: e.clientX, y: e.clientY, t: now(), lx: e.clientX, ly: e.clientY, lt: now(), hit, swiped: false };
   canvas.setPointerCapture(e.pointerId);
@@ -779,7 +807,10 @@ function resetAll() {
   st.rage = 0; st.meltdown = false;
   st.chew = 0; st.fire = 0; st.sour = 0;
   if (painter) painter.drips = [];
+  bees.stop(true);
+  emotions.stop();
   $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
+  head.look.set(0, 0);
   sfx.ding();
   showBubble('Good as new. Mostly.');
 }
@@ -796,7 +827,6 @@ async function toggleMimic() {
   if (mimic.state === 'recording') {
     setMimicButton(false);
     sfx.micOff();
-    st.rot.z.t = 0;
     const buf = await mimic.stop();
     if (!buf || buf.duration < 0.3) {
       st.userSpeaking = false;
@@ -825,7 +855,6 @@ async function toggleMimic() {
   setMimicButton(true);
   sfx.micOn();
   showBubble(line('listen'), 10000);
-  st.rot.z.t = 0.14; // tilt the head, like a curious dog
 }
 
 // ---------- clip recording ----------
@@ -1004,6 +1033,14 @@ const ACTIONS = {
     react('spin', { force: true });
   },
   fry: deepFry,
+  bees() {
+    const btn = $('[data-action="bees"]');
+    if (bees.active) { bees.stop(true); btn.classList.remove('on'); sfx.whoosh(0.4); return; }
+    bees.start(7);
+    btn.classList.add('on');
+    grunt('uhoh');
+    react('bees', { force: true });
+  },
   mimic: toggleMimic,
   rec: toggleRec,
   reset: resetAll,
@@ -1169,6 +1206,10 @@ function frame() {
       st.rot.y.t = st.mouse.x * 0.45;
       st.rot.x.t = -st.mouse.y * 0.25;
     }
+    const emo = emotions.update(dt, t);
+    st.rot.x.t += emo.rotX;
+    // Tilt like a curious dog while listening to the mic.
+    st.rot.z.t = (mimic.state === 'recording' ? 0.14 : 0) + emo.rotZ;
     for (const s of [st.rot.x, st.rot.y, st.rot.z, st.pos.x, st.pos.y, st.scale]) s.step(dt);
 
     // Mouth: speech flaps, tongue keeps it ajar, tickles make it laugh.
@@ -1202,8 +1243,27 @@ function frame() {
       head.forceBlink = st.sour > 0 ? 0.85 : 0;
       jawT = 0;
     }
+    jawT = Math.max(jawT, emo.jaw);
     head.s.jaw.t = jawT;
-    head.s.brow.t = st.meltdown ? -1 : head.s.inflate.t * 0.6 + (isTalking() ? 0.15 * Math.sin(t * 5) : 0);
+    head.s.brow.t = st.meltdown ? -1 : head.s.inflate.t * 0.6 + (isTalking() ? 0.15 * Math.sin(t * 5) : 0) + emo.brow;
+
+    // Eyes: follow the pointer, wander when it is still, or do what the feeling says.
+    let lookT = emo.look;
+    if (!lookT && st.ptr && tNow - st.ptr.t < 2500) {
+      const eye = props.anchorWorld('eyeL', new THREE.Vector3()).add(props.anchorWorld('eyeR', tmpV)).multiplyScalar(0.5).project(camera);
+      const sr = stage.getBoundingClientRect();
+      const ex = sr.left + (eye.x * 0.5 + 0.5) * sr.width, ey = sr.top + (-eye.y * 0.5 + 0.5) * sr.height;
+      lookT = new THREE.Vector2((st.ptr.x - ex) / (sr.width * 0.3), (ey - st.ptr.y) / (sr.height * 0.3));
+      if (lookT.length() > 1) lookT.normalize();
+    } else if (!lookT) {
+      if (tNow > st.nextSaccade) {
+        st.nextSaccade = tNow + rnd(900, 2400);
+        if (Math.random() < 0.35) st.saccade.set(0, 0);
+        else st.saccade.set(rnd(-1, 1), rnd(-0.6, 0.6)).clampLength(0, 0.75);
+      }
+      lookT = st.saccade;
+    }
+    head.look.lerp(lookT, Math.min(1, dt * 18));
 
     // Deflate after the pumping stops. Loudly.
     const inf = head.s.inflate;
@@ -1227,7 +1287,7 @@ function frame() {
     st.blush = Math.max(0, st.blush - dt * 0.8);
     const r = st.rage / 100;
     const hot = Math.max(0, st.fire) * 0.12;
-    head.s.tint.setRGB(r * 0.22 + st.blush * 0.18 + hot, st.blush * 0.02, st.blush * 0.04);
+    head.s.tint.setRGB(r * 0.22 + st.blush * 0.18 + hot, st.blush * 0.02, st.blush * 0.04).add(emo.tint);
     if (st.rage > 70 || st.meltdown) {
       const k = st.meltdown ? 0.06 : 0.015;
       st.rot.z.x += rnd(-k, k);
@@ -1240,6 +1300,7 @@ function frame() {
 
     painter.update(dt);
     updateProjectiles(dt);
+    bees.update(dt, t);
     head.update(dt);
     props.update(dt, t);
 
@@ -1300,4 +1361,4 @@ function frame() {
 requestAnimationFrame(frame);
 
 // Debug handle for the curious (and for automated tests).
-window.headcase = { loadFace, get head() { return head; }, get props() { return props; }, st, ACTIONS, camera, stage, mimic, recorder };
+window.headcase = { loadFace, get head() { return head; }, get props() { return props; }, st, ACTIONS, camera, stage, mimic, recorder, bees, emotions, fx };

@@ -56,6 +56,9 @@ export class Head {
       tint: new THREE.Color(0, 0, 0),
     };
     this.pokes = [];
+    this.welts = [];
+    this.wink = { L: 0, R: 0 };
+    this.look = new THREE.Vector2(); // where the pupils point, -1..1
     this.pinch = null;
     this.time = 0;
     this.nextBlink = 2;
@@ -143,7 +146,17 @@ export class Head {
       }
       return best;
     };
-    for (const key of ['eyeL', 'eyeR', 'nose', 'bridge', 'stache', 'mouth']) this.anchors[key] = near(F[key]);
+    for (const key of ['eyeL', 'eyeR', 'nose', 'bridge', 'stache', 'mouth', 'browL', 'browR']) this.anchors[key] = near(F[key]);
+    // Ears: the side vertices at eye height (steam comes out of these).
+    const eyeY = fit.toModel(0, (F.eyeL.y + F.eyeR.y) / 2)[1];
+    for (const [key, sx] of [['earL', -1], ['earR', 1]]) {
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = (base[i * 3] - sx * A) ** 2 + (base[i * 3 + 1] - eyeY) ** 2 + base[i * 3 + 2] ** 2;
+        if (d < bd) { bd = d; best = i; }
+      }
+      this.anchors[key] = best;
+    }
     // Lower lip anchor, a hair below the mouth center, so the tongue rides the jaw.
     this.anchors.lowerLip = near({ x: F.mouth.x, y: F.mouth.y + fw * 0.04 });
     let top = 0;
@@ -165,7 +178,12 @@ export class Head {
     const eyeUv = (e) => new THREE.Vector4(e.x / fit.W, 1 - e.y / fit.H, e.rx / fit.W, e.ry / fit.H);
     this.uniforms = {
       uJaw: { value: 0 },
-      uBlink: { value: 0 },
+      uBlinkL: { value: 0 },
+      uBlinkR: { value: 0 },
+      uIrisL: { value: eyeUv(F.irisL) },
+      uIrisR: { value: eyeUv(F.irisR) },
+      uLook: { value: new THREE.Vector2() },
+      uSclera: { value: toLinear(fit.sclera) },
       uTint: { value: new THREE.Color(0, 0, 0) },
       uSkin: { value: this.skinColor },
       uEyeL: { value: eyeUv(F.eyeL) },
@@ -188,7 +206,8 @@ export class Head {
         .replace('#include <common>', `#include <common>
           varying float vMix; varying vec3 vFill; varying float vJaw; varying float vMouth; varying vec2 vPaintUv;
           uniform sampler2D uPaint;
-          uniform float uJaw; uniform float uBlink; uniform vec3 uTint; uniform vec3 uSkin;
+          uniform float uJaw; uniform float uBlinkL; uniform float uBlinkR; uniform vec3 uTint; uniform vec3 uSkin;
+          uniform vec4 uIrisL; uniform vec4 uIrisR; uniform vec2 uLook; uniform vec3 uSclera;
           uniform vec4 uEyeL; uniform vec4 uEyeR; uniform float uHue;
           float lidMask(vec2 uv, vec4 e) {
             vec2 d = (uv - e.xy) / e.zw;
@@ -203,12 +222,34 @@ export class Head {
             float ca = cos(a);
             return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca);
           }`)
+        // eyeTrack samples the photo, so it goes after three declares the map uniform.
+        .replace('#include <map_pars_fragment>', `#include <map_pars_fragment>
+          // Slide the iris inside the eye opening. Where the iris leaves, paint eye-white.
+          vec3 eyeTrack(vec3 base, vec2 uv, vec4 eye, vec4 iris) {
+            float m = 1.0 - smoothstep(0.55, 0.8, length((uv - eye.xy) / (eye.zw * vec2(1.0, 0.8))));
+            if (m <= 0.0) return base;
+            vec2 shift = uLook * iris.zw * vec2(0.7, 0.28);
+            vec2 q = uv - shift;
+            float inIris = 1.0 - smoothstep(0.85, 1.05, length((q - iris.xy) / iris.zw));
+            float wasIris = 1.0 - smoothstep(0.85, 1.05, length((uv - iris.xy) / iris.zw));
+            // Fill the spot the iris left with real eye-white from just past its trailing edge.
+            vec2 away = normalize(shift / iris.zw + 1e-6) * iris.zw * 1.6;
+            vec3 white = mix(texture2D(map, uv - away).rgb, uSclera, 0.2);
+            vec3 c = mix(base, white, wasIris);
+            c = mix(c, texture2D(map, q).rgb, inIris);
+            return mix(base, c, m);
+          }`)
         .replace('#include <map_fragment>', `
           vec4 sampledDiffuseColor = texture2D(map, vMapUv);
-          vec3 col = mix(vFill, sampledDiffuseColor.rgb, vMix);
-          float lid = clamp(lidMask(vMapUv, uEyeL) + lidMask(vMapUv, uEyeR), 0.0, 1.0) * uBlink * vMix;
+          vec3 photo = sampledDiffuseColor.rgb;
+          if (dot(uLook, uLook) > 0.0001) {
+            photo = eyeTrack(photo, vMapUv, uEyeL, uIrisL);
+            photo = eyeTrack(photo, vMapUv, uEyeR, uIrisR);
+          }
+          vec3 col = mix(vFill, photo, vMix);
+          float lid = clamp(lidMask(vMapUv, uEyeL) * uBlinkL + lidMask(vMapUv, uEyeR) * uBlinkR, 0.0, 1.0) * vMix;
           col = mix(col, uSkin * 0.9, lid);
-          float lash = clamp(lashMask(vMapUv, uEyeL) + lashMask(vMapUv, uEyeR), 0.0, 1.0) * step(0.6, uBlink) * vMix;
+          float lash = clamp(lashMask(vMapUv, uEyeL) * step(0.6, uBlinkL) + lashMask(vMapUv, uEyeR) * step(0.6, uBlinkR), 0.0, 1.0) * vMix;
           col = mix(col, vec3(0.02), lash);
           float open = smoothstep(0.01, 0.1, vJaw) * (1.0 - smoothstep(0.82, 0.98, vJaw)) * vMouth * clamp(uJaw * 7.0, 0.0, 1.0);
           float teeth = smoothstep(0.01, 0.06, vJaw) * (1.0 - smoothstep(0.12, 0.2, vJaw)) * step(0.06, uJaw);
@@ -225,6 +266,13 @@ export class Head {
   }
 
   // ---------- interactions ----------
+  // A bee sting: a bump that swells up and stays until reset.
+  addWelt(i) {
+    this.welts.push({ i, amp: 0, target: 0.06 + Math.random() * 0.04 });
+    if (this.welts.length > 14) this.welts.shift();
+  }
+  winkEye(side) { this.wink[side] = 1; }
+
   poke(i, amp = 0.28, radius = 0.32) {
     this.pokes.push({ i, amp, r2: radius * radius, t: 0 });
     if (this.pokes.length > 12) this.pokes.shift();
@@ -290,6 +338,7 @@ export class Head {
     s.fat = s.fatTarget = 0;
     this.clearPaint();
     this.pokes.length = 0; this.pinch = null;
+    this.welts.length = 0;
   }
 
   // ---------- per-frame ----------
@@ -313,6 +362,13 @@ export class Head {
     }
     if (this.forceBlink) s.blink = Math.max(s.blink, this.forceBlink);
 
+    this.wink.L = Math.max(0, this.wink.L - dt * 1.6);
+    this.wink.R = Math.max(0, this.wink.R - dt * 1.6);
+    for (const w of this.welts) w.amp += (w.target - w.amp) * Math.min(1, dt * 4);
+    const welts = this.welts.map((w) => {
+      const b = this.base, N = this.baseN, i = w.i;
+      return { x: b[i * 3], y: b[i * 3 + 1], z: b[i * 3 + 2], nx: N[i * 3], ny: N[i * 3 + 1], nz: N[i * 3 + 2], f: w.amp };
+    });
     for (const p of this.pokes) p.t += dt;
     this.pokes = this.pokes.filter((p) => p.t < 1.6);
     const pokes = this.pokes.map((p) => {
@@ -373,6 +429,13 @@ export class Head {
         const f = k.f * Math.exp(-d2 / k.r2);
         x -= k.nx * f; y -= k.ny * f; z -= k.nz * f;
       }
+      for (let w = 0; w < welts.length; w++) {
+        const k = welts[w];
+        const d2 = (bx - k.x) ** 2 + (by - k.y) ** 2 + (bz - k.z) ** 2;
+        if (d2 > 0.06) continue;
+        const f = k.f * Math.exp(-d2 / 0.012);
+        x += k.nx * f; y += k.ny * f; z += k.nz * f;
+      }
       if (pinch) {
         const d2 = (bx - pinch.x) ** 2 + (by - pinch.y) ** 2 + (bz - pinch.z) ** 2;
         const f = Math.exp(-d2 / 0.09);
@@ -405,7 +468,11 @@ export class Head {
     this.geo.computeVertexNormals();
 
     this.uniforms.uJaw.value = jaw;
-    this.uniforms.uBlink.value = s.blink;
+    // A wink holds one eye shut, with a little shape: close fast, open slow.
+    const wk = (v) => (v > 0.7 ? (1 - v) / 0.3 : Math.min(1, v / 0.5));
+    this.uniforms.uBlinkL.value = Math.max(s.blink, this.wink.L > 0 ? wk(this.wink.L) : 0);
+    this.uniforms.uBlinkR.value = Math.max(s.blink, this.wink.R > 0 ? wk(this.wink.R) : 0);
+    this.uniforms.uLook.value.copy(this.look);
     this.uniforms.uTint.value.copy(s.tint);
   }
 

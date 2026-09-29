@@ -84,6 +84,24 @@ export class Painter {
     h.paintDirty = true;
   }
 
+  // A soft round mark (bee stings).
+  mark(uv1, color, r = 16) {
+    const h = this.head, ctx = h.paintCtx;
+    const { x, y, sx } = h.paintPx(uv1);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sx, 1);
+    const g = ctx.createRadialGradient(0, 0, 1, 0, 0, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, 'rgba(255,60,60,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, 7);
+    ctx.fill();
+    ctx.restore();
+    h.paintDirty = true;
+  }
+
   // Sharpie: connect this point to the previous one while the pen stays down.
   stroke(uv1, color, width = 14) {
     const h = this.head, ctx = h.paintCtx;
