@@ -27,6 +27,7 @@ export class FX {
   }
 
   burst(pos, emojis, count = 20, { speed = 4, gravity = -6, life = 1.6, size = 0.35, spread = 1, dir = null } = {}) {
+    count = Math.max(1, Math.round(count * (this.density ?? 1))); // fewer in low-effects mode
     for (let i = 0; i < count; i++) {
       const e = emojis[Math.floor(Math.random() * emojis.length)];
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(e), transparent: true, depthWrite: false }));

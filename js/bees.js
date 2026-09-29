@@ -100,6 +100,7 @@ export class Bees {
     head.s.brow.kick(10);
     app.fx.burst(b.sp.position, ['💢', '❗'], 2, { speed: 1.5, size: 0.25, life: 0.6 });
     app.addRage(8);
+    app.ach?.().bump('sting');
     app.react('sting', { force: true });
   }
 

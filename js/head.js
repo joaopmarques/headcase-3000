@@ -339,6 +339,7 @@ export class Head {
     this.clearPaint();
     this.pokes.length = 0; this.pinch = null;
     this.welts.length = 0;
+    this.forceDeform = true;
   }
 
   // ---------- per-frame ----------
@@ -396,6 +397,20 @@ export class Head {
     const sy = Math.max(0.15, s.scaleY.x), sxz = 1 / Math.sqrt(sy);
     const base = this.base, N = this.baseN;
     const out = this.geo.attributes.position.array;
+
+    // Idle skip: rebuilding ~27k vertices and their normals costs a few ms per frame.
+    // When nothing is deforming the head (and no effect animates over time), keep last frame's shape.
+    const animated = pokes.length || pinch || tickle > 0 || melt > 0.001 || Math.abs(inflate) > 1e-4;
+    const sig = [inflate, jaw, brow, nose, twist, melt, tickle, fat, sy, welts.reduce((a, w) => a + w.f, 0)];
+    const same = this.lastSig && sig.every((v, k) => Math.abs(v - this.lastSig[k]) < 1e-5);
+    this.lastSig = sig;
+    if (!animated && same && !this.forceDeform) {
+      this.uniforms.uJaw.value = jaw;
+      this.finishUniforms(s);
+      return;
+    }
+    this.forceDeform = false;
+    this.lowCount = (this.lowCount ?? 0) + 1;
 
     for (let i = 0; i < this.n; i++) {
       const i3 = i * 3;
@@ -465,9 +480,15 @@ export class Head {
       out[i3] = x * sxz; out[i3 + 1] = y * sy; out[i3 + 2] = z * sxz;
     }
     this.geo.attributes.position.needsUpdate = true;
-    this.geo.computeVertexNormals();
+    // In low-effects mode, lighting normals refresh every other frame (the shape still moves every frame).
+    if (!this.lowFx || this.lowCount % 2 === 0) this.geo.computeVertexNormals();
 
     this.uniforms.uJaw.value = jaw;
+    this.finishUniforms(s);
+  }
+
+  // Per-frame shader inputs (blinks, gaze, tint). These run even when the shape is idle.
+  finishUniforms(s) {
     // A wink holds one eye shut, with a little shape: close fast, open slow.
     const wk = (v) => (v > 0.7 ? (1 - v) / 0.3 : Math.min(1, v / 0.5));
     this.uniforms.uBlinkL.value = Math.max(s.blink, this.wink.L > 0 ? wk(this.wink.L) : 0);

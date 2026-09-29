@@ -50,7 +50,7 @@ export class Vomit {
 
   // Call every frame while the head is puking. rate = blobs per second.
   stream(origin, dir, dt, rate = 170) {
-    this.carry += rate * dt;
+    this.carry += rate * (this.density ?? 1) * dt; // thinner stream in low-effects mode
     while (this.carry >= 1) {
       this.carry -= 1;
       this.spawn(origin, dir);

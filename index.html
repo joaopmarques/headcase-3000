@@ -69,7 +69,7 @@
     <figcaption>The developer is taking credit for themselves; Claude did it all (mostly).</figcaption>
   </figure>
 
-  <button id="trophyBtn" class="trophy" title="Achievements">🏆<span id="trophyCount">0/0</span></button>
+  <button id="trophyBtn" class="trophy" title="Achievements and stats">🏆<span id="trophyCount">0/0</span></button>
   <div id="toasts" aria-live="polite"></div>
 
   <div id="rage" aria-label="Rage-o-meter">
@@ -84,13 +84,14 @@
   <!-- Quarter-circle command wheel, bottom-left -->
   <nav id="wheel" aria-label="Menu">
     <div class="wheel-bg"></div>
-    <button class="orb outer on" data-cat="tools" style="--a: 12deg" title="Tools of Torment"><span class="ico">👉</span></button>
-    <button class="orb outer" data-cat="emotions" style="--a: 29deg" title="Emotions"><span class="ico">😭</span></button>
+    <button class="orb outer on" data-cat="tools" style="--a: 9deg" title="Tools of Torment"><span class="ico">👉</span></button>
+    <button class="orb outer" data-cat="emotions" style="--a: 27deg" title="Emotions"><span class="ico">😭</span></button>
     <button class="orb outer" data-cat="chaos" style="--a: 45deg" title="Chaos"><span class="ico">🌀</span></button>
-    <button class="orb outer" data-cat="food" style="--a: 61deg" title="Food"><span class="ico">🍔</span></button>
-    <button class="orb outer" data-cat="drip" style="--a: 78deg" title="Drip"><span class="ico">🥳</span></button>
-    <button class="orb inner" data-cat="voice" style="--a: 22deg" title="Voice"><span class="ico">🎙️</span></button>
-    <button class="orb inner" data-cat="media" style="--a: 68deg" title="Photo &amp; video"><span class="ico">🎬</span></button>
+    <button class="orb outer" data-cat="food" style="--a: 63deg" title="Food"><span class="ico">🍔</span></button>
+    <button class="orb outer" data-cat="drip" style="--a: 81deg" title="Drip"><span class="ico">🥳</span></button>
+    <button class="orb inner" data-cat="voice" style="--a: 15deg" title="Voice"><span class="ico">🎙️</span></button>
+    <button class="orb inner" data-cat="media" style="--a: 45deg" title="Photo &amp; video"><span class="ico">🎬</span></button>
+    <button class="orb inner" id="optionsBtn" style="--a: 75deg" title="Options"><span class="ico">⚙️</span></button>
     <button class="corner c1" data-action="reset" title="Un-ruin: undo all the damage"><span class="ico">🧽</span><span class="lbl">UN-RUIN</span></button>
     <button class="corner c2" data-action="newface" title="Upload a new face"><span class="ico">🙂</span><span class="lbl">NEW FACE</span></button>
   </nav>
@@ -185,7 +186,7 @@
   <div id="intro" class="overlay">
     <div class="card">
       <button id="closeIntro" class="x" aria-label="Close">✖</button>
-      <h2>FEED ME<br />A FACE</h2>
+      <h2>FEED ME<br class="br-m" /> A FACE</h2>
       <p>Upload a photo (face looking at the camera works best). We turn it into a 3D head. Then you do crimes to it.</p>
       <div class="drop" id="pickFile">
         <span class="big">🖼️</span>
@@ -232,10 +233,42 @@
   <div id="achScreen" class="overlay hidden">
     <div class="card ach">
       <button id="achClose" class="x" aria-label="Close">✖</button>
-      <h2>TROPHY<br />CASE</h2>
-      <div class="ach-progress"><div class="ach-bar"><i id="achBar"></i></div><span id="achCount">0 / 0</span></div>
-      <div id="achGrid" class="ach-grid"></div>
+      <h2>TROPHY<br class="br-m" /> CASE</h2>
+      <div class="seg tabs" role="tablist">
+        <button class="on" data-achtab="trophies" role="tab">🏆 TROPHIES</button>
+        <button data-achtab="stats" role="tab">📈 STATS</button>
+      </div>
+      <div data-achpanel="trophies">
+        <div class="ach-progress"><div class="ach-bar"><i id="achBar"></i></div><span id="achCount">0 / 0</span></div>
+        <div id="achGrid" class="ach-grid"></div>
+      </div>
+      <div data-achpanel="stats" hidden>
+        <p class="stats-lede" id="statsLede"></p>
+        <div id="statsGrid" class="stats-grid"></div>
+      </div>
       <p class="fine">Progress is saved in this browser only. <button id="achReset" class="hold-reset" title="Hold to wipe all progress"><span>🗑️ HOLD TO RESET</span></button></p>
+    </div>
+  </div>
+
+  <div id="optScreen" class="overlay hidden">
+    <div class="card opts">
+      <button id="optClose" class="x" aria-label="Close">✖</button>
+      <h2>OPTIONS</h2>
+      <h3>🔊 VOLUME</h3>
+      <div class="opt-rows">
+        <label class="opt-row"><span>Master</span><input type="range" min="0" max="1" step="0.05" data-vol="master" /><b></b></label>
+        <label class="opt-row"><span>Sound effects</span><input type="range" min="0" max="1" step="0.05" data-vol="sfx" /><b></b></label>
+        <label class="opt-row"><span>Voice</span><input type="range" min="0" max="1" step="0.05" data-vol="voice" /><b></b></label>
+        <label class="opt-row"><span>Music</span><input type="range" min="0" max="1" step="0.05" data-vol="music" /><b></b></label>
+      </div>
+      <h3>✨ EFFECTS</h3>
+      <div class="seg" id="fxMode" role="radiogroup">
+        <button data-fx="auto" class="on">AUTO</button>
+        <button data-fx="high">FULL</button>
+        <button data-fx="low">LOW</button>
+      </div>
+      <p class="fine" id="fxNote">Auto switches to low effects if your device struggles.</p>
+      <p class="fine">Saved in this browser. <button id="optReset" class="linkish">Back to defaults</button></p>
     </div>
   </div>
 

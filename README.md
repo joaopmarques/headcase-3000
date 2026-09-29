@@ -46,4 +46,17 @@ Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools
 Most sounds are synthesized live with Web Audio. A few recorded ones in `sfx/` come from
 [freesound.org](https://freesound.org), all under **CC0 1.0 (public domain)**. The full list is in
 [sfx/CREDITS.md](sfx/CREDITS.md).
-- `js/main.js`: scene, tools, actions, rage-o-meter, command wheel, UI
+- `js/main.js`: boots the app (loads the `js/app/` modules in order)
+
+### `js/app/`: the app shell
+
+Modules share state through one `app` object in `ctx.js` and never import each other, so there are no import cycles.
+
+- `ctx.js`: the shared `app` object, live state, and DOM helpers
+- `stage.js`: renderer, scene, camera, lights, and the camera fit
+- `talk.js`: speech bubble, rage-o-meter, and reactions
+- `trophies.js`: achievement toasts, the Trophy Case, stats, and the credit photo
+- `options.js`: volume and effects settings
+- `quality.js`: low-effects mode (auto, or forced from Options)
+- `feelings.js`, `faces.js`, `tools.js`, `wheel.js`, `actions.js`, `media.js`, `snacks.js`, `voicebox.js`, `mood.js`: one feature area each
+- `loop.js`: the animation loop

@@ -1,19 +1,33 @@
 // Synthesized nonsense noises. No audio files, only Web Audio and bad decisions.
-let ctx, master, noiseBuf, voiceBus, outBus, tap;
+let ctx, master, noiseBuf, voiceBus, musicBus, outBus, tap;
 let muted = false;
+// Volume settings, 0..1 each (the Options screen sets these). Sound effects keep their old 0.55 base.
+const vol = { master: 1, sfx: 1, voice: 1, music: 1 };
+const SFX_BASE = 0.55;
+
+function applyGains() {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  master.gain.setTargetAtTime(muted ? 0 : SFX_BASE * vol.sfx * vol.master, t, 0.02);
+  voiceBus.gain.setTargetAtTime(vol.voice * vol.master, t, 0.02);
+  musicBus.gain.setTargetAtTime(vol.music * vol.master, t, 0.02);
+}
 
 function ac() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Three channels: sound effects (through a compressor), voice, and music.
     master = ctx.createGain();
-    master.gain.value = muted ? 0 : 0.55;
     // The mimic voice skips the sfx mute and the compressor (it pumps on speech).
     voiceBus = ctx.createGain();
-    voiceBus.gain.value = 1;
+    musicBus = ctx.createGain();
     outBus = ctx.createDynamicsCompressor();
     master.connect(outBus);
     outBus.connect(ctx.destination);
     voiceBus.connect(ctx.destination);
+    musicBus.connect(ctx.destination);
+    master.gain.value = 0; voiceBus.gain.value = 0; musicBus.gain.value = 0;
+    applyGains();
   }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
@@ -21,8 +35,13 @@ function ac() {
 
 export function setMuted(m) {
   muted = m;
-  if (master) master.gain.value = m ? 0 : 0.55;
+  applyGains();
 }
+export function setVolumes(v) {
+  Object.assign(vol, v);
+  applyGains();
+}
+export const getVolumes = () => ({ ...vol });
 export const isMuted = () => muted;
 
 function env(g, t0, attack, peak, dur) {
@@ -247,6 +266,7 @@ export function stopDisco() {
 export const unlock = () => ac();
 export const audioCtx = () => ac();
 export const voiceOut = () => (ac(), voiceBus);
+export const musicOut = () => (ac(), musicBus);
 // A stream of everything the app plays, for clip recording.
 export function tapStream() {
   const c = ac();
@@ -254,6 +274,7 @@ export function tapStream() {
     tap = c.createMediaStreamDestination();
     outBus.connect(tap);
     voiceBus.connect(tap);
+    musicBus.connect(tap);
   }
   return tap.stream;
 }

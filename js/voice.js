@@ -1,5 +1,5 @@
 // Text-to-speech via the browser. Every OS ships at least one cursed voice.
-export const voiceState = { voices: [], voice: null, pitch: 1, rate: 1, speaking: false, lastBoundary: 0, until: 0 };
+export const voiceState = { voices: [], voice: null, pitch: 1, rate: 1, volume: 1, speaking: false, lastBoundary: 0, until: 0 };
 export const isTalking = () => voiceState.speaking && performance.now() < voiceState.until;
 
 const synth = window.speechSynthesis;
@@ -24,6 +24,7 @@ export function speak(text, { pitch, rate, voice, interrupt = true, onEnd } = {}
   if (v) u.voice = v;
   u.pitch = pitch ?? voiceState.pitch;
   u.rate = rate ?? voiceState.rate;
+  u.volume = voiceState.volume; // Options: voice x master volume
   u.onstart = () => { voiceState.speaking = true; };
   u.onboundary = () => { voiceState.lastBoundary = performance.now(); };
   u.onend = u.onerror = () => {

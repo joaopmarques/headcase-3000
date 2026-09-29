@@ -9,8 +9,8 @@
   --paper: #fffbe8;
   /* Wheel radius. Everything in the corner scales from it. */
   --R: 250px;
-  --orb: 56px;
-  --orb-in: 50px;
+  --orb: 64px;
+  --orb-in: 56px;
   --tb-h: 118px;
   /* Early-2000s plastic: a top shine, a dark bottom lip, and a hard comic shadow. */
   --gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.15) 48%, rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, 0.08) 100%);
@@ -292,7 +292,7 @@ html, body {
   pointer-events: auto;
 }
 .orb {
-  --r: calc(var(--R) * 0.81);
+  --r: calc(var(--R) * 0.9); /* big orbs may spill past the wheel's edge, on purpose */
   width: var(--orb);
   height: var(--orb);
   left: calc(var(--r) * sin(var(--a)));
@@ -304,7 +304,7 @@ html, body {
   box-shadow: var(--bevel), 2px 3px 0 var(--ink);
 }
 .orb.inner {
-  --r: calc(var(--R) * 0.5);
+  --r: calc(var(--R) * 0.58); /* clear of the corner pills and the outer ring */
   width: var(--orb-in);
   height: var(--orb-in);
   font-size: calc(var(--orb-in) * 0.5);
@@ -343,8 +343,8 @@ html, body {
   box-shadow: var(--bevel), 2px 2px 0 var(--ink);
 }
 .corner .ico { font-size: 16px; line-height: 1; transition: transform 0.25s cubic-bezier(0.2, 2, 0.4, 1); }
-.corner.c1 { bottom: 44px; }
-.corner.c2 { bottom: 8px; background: var(--gloss), var(--pink); color: #fff; text-shadow: 1px 1px 0 var(--ink); }
+.corner.c1 { bottom: 40px; }
+.corner.c2 { bottom: 6px; background: var(--gloss), var(--pink); color: #fff; text-shadow: 1px 1px 0 var(--ink); }
 .corner:hover { background: var(--gloss), var(--yellow); color: var(--ink); text-shadow: none; }
 .corner:hover .ico { transform: scale(1.3) rotate(-12deg); }
 
@@ -623,6 +623,13 @@ html, body {
 #creditPhoto.show { opacity: 1; scale: 1; }
 
 .card.ach { width: min(720px, 100%); max-height: 92vh; display: flex; flex-direction: column; }
+/* The tab panels take the card's leftover height, so the grid inside them scrolls
+   instead of spilling out of the card. */
+.card.ach [data-achpanel] { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.card.ach [data-achpanel][hidden] { display: none; }
+/* Only the grids give up height; the title, tabs, progress bar, and footer keep theirs. */
+.card.ach > :not([data-achpanel]), .card.ach .ach-progress, .card.ach .stats-lede { flex-shrink: 0; }
+.card.ach .ach-grid, .card.ach .stats-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .ach-progress { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; font-family: 'Bangers', sans-serif; font-size: 20px; letter-spacing: 1px; }
 .ach-bar { flex: 1; height: 16px; border: 2.5px solid var(--ink); border-radius: 999px; background: #eee; overflow: hidden; }
 .ach-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--lime), var(--yellow), var(--pink)); transition: width 0.4s; }
@@ -699,6 +706,32 @@ button.squish { animation: squish 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) !importan
 @keyframes itemin { from { opacity: 0; translate: 0 34px; scale: 0.5; rotate: -12deg; } }
 .tb-tab.pop { animation: tabpop 0.4s cubic-bezier(0.2, 2.4, 0.4, 1); }
 @keyframes tabpop { from { scale: 0.4; rotate: -8deg; } }
+
+/* ---------- options + stats ---------- */
+/* The options orb is not a category: a plain grey-blue gear that spins on hover. */
+#optionsBtn { background: var(--gloss), radial-gradient(circle at 50% 30%, #fff, #d9e8ff 70%, #9fb7e6); }
+#optionsBtn:hover .ico { transform: rotate(90deg) scale(1.2); }
+/* Effects picker spans the whole options card. */
+#fxMode { display: flex; width: 100%; }
+#fxMode button { flex: 1; padding: 7px 0; font-size: 16px; }
+.seg { display: inline-flex; gap: 0; margin: 4px auto 10px; border: 2.5px solid var(--ink); border-radius: 999px; overflow: hidden; box-shadow: 2px 2px 0 var(--ink); }
+.seg button { border: 0; border-radius: 0; box-shadow: none; font-family: 'Bangers', sans-serif; letter-spacing: 1px; font-size: 15px; padding: 5px 14px; background: var(--gloss), #fff; }
+.seg button + button { border-left: 2.5px solid var(--ink); }
+.seg button.on { background: var(--gloss), var(--yellow); }
+.seg button:hover { animation: none; background: var(--gloss), var(--lime); }
+.card.opts { width: min(460px, 100%); }
+.card.opts h3 { font-family: 'Bangers', sans-serif; letter-spacing: 1px; font-size: 20px; margin: 10px 0 6px; text-align: left; }
+.opt-rows { display: grid; gap: 8px; }
+.opt-row { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 16px; text-align: left; }
+.opt-row input { width: 100%; accent-color: var(--pink); }
+.opt-row b { font-family: 'Bangers', sans-serif; font-weight: normal; letter-spacing: 1px; text-align: right; }
+.stats-lede { font-size: 16px; margin: 0 0 10px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; overflow-y: auto; padding: 4px 4px 8px; text-align: left; }
+.stat { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 2.5px solid var(--ink); border-radius: 14px; background: var(--gloss), #fff; box-shadow: 2px 2px 0 var(--ink); }
+.stat .ico { font-size: 26px; }
+.stat b { display: block; font-family: 'Bangers', sans-serif; font-weight: normal; font-size: 24px; line-height: 1; letter-spacing: 1px; }
+.stat small { display: block; font-size: 12px; opacity: 0.75; line-height: 1.1; }
+.stat.big { grid-column: span 2; background: var(--gloss), var(--yellow); }
 
 /* ---------- floating bits on the stage ---------- */
 #hint {
@@ -917,6 +950,8 @@ a.btn:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink);
   text-shadow: 4px 4px 0 var(--ink);
   letter-spacing: 2px;
 }
+/* Title line breaks that only apply on phones. */
+.card h2 .br-m { display: none; }
 .card p { font-size: 17px; margin: 6px 0 12px; }
 .card .fine { font-size: 13px; opacity: 0.7; margin: 12px 0 0; }
 .card .x { position: absolute; top: 10px; right: 10px; padding: 2px 8px; font-size: 14px; }
@@ -998,9 +1033,14 @@ body.dragging #dropHint { display: grid; }
 #recBadge { position: fixed; top: 44px; z-index: 16; }
 .stamp { z-index: 7; }
 
+/* Low-effects mode: decorative CSS motion off (the 3D fun stays). */
+body.lowfx #stage::before, body.lowfx .logo, body.lowfx .logo h1 span, body.lowfx .ticker div,
+body.lowfx .orb.on, body.lowfx .orb.on .ico, body.lowfx .tb-note { animation: none !important; }
+
 /* ---------- phones ---------- */
 @media (max-width: 700px) {
-  :root { --R: 172px; --orb: 42px; --orb-in: 38px; --tb-h: 96px; }
+  .card h2 .br-m { display: inline; }
+  :root { --R: 172px; --orb: 44px; --orb-in: 42px; --tb-h: 96px; }
   /* scale, not transform: the sway animation owns transform. */
   .logo { scale: 0.62; }
   #rage { scale: 0.62; }
@@ -1015,8 +1055,8 @@ body.dragging #dropHint { display: grid; }
   /* Too tight for labels on phones: icon-only squares side by side. */
   .corner { width: 30px; height: 30px; padding: 0; justify-content: center; border-radius: 9px; bottom: 6px; }
   .corner .lbl { display: none; }
-  .corner.c1 { left: 6px; bottom: 6px; }
-  .corner.c2 { left: 40px; }
+  .corner.c1 { left: 6px; bottom: 40px; }
+  .corner.c2 { left: 6px; bottom: 6px; }
   .trophy { top: 100px; left: 12px; width: 44px; height: 44px; font-size: 21px; }
   .toast { scale: 0.75; }
   .tb-head { left: 30px; top: -25px; }

@@ -1,6 +1,6 @@
 // Recorded CC0 samples from freesound.org (see sfx/CREDITS.md). Synth sounds cover for them
 // until they load, or if they fail to load.
-import { audioCtx, sfxOut } from './audio.js';
+import { audioCtx, sfxOut, musicOut } from './audio.js';
 
 const NAMES = ['nuke', 'boing', 'squeak', 'slide', 'fart', 'crickets', 'scratch', 'laugh', 'airhorn', 'splat', 'aww', 'honk', 'barf', 'wilhelm'];
 const buffers = {};
@@ -47,7 +47,7 @@ export function loadOne(name) {
 }
 
 // Loop a sample. Returns { t0, stop() }, where t0 is the audio-clock time it started (for beat sync).
-export function loop(name, { vol = 1 } = {}) {
+export function loop(name, { vol = 1, bus = 'sfx' } = {}) {
   const b = buffers[name];
   if (!b) return null;
   const c = audioCtx();
@@ -56,7 +56,7 @@ export function loop(name, { vol = 1 } = {}) {
   src.loop = true;
   const g = c.createGain();
   g.gain.value = vol;
-  src.connect(g).connect(sfxOut());
+  src.connect(g).connect(bus === 'music' ? musicOut() : sfxOut());
   const t0 = c.currentTime + 0.05;
   src.start(t0);
   return {
