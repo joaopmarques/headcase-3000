@@ -52,7 +52,7 @@ export class Emotions {
         app.react('sick', { force: true });
         A.gags = 0;
         A.puked = false;
-        A.fatBefore = head.s.fatTarget; // gags puff the cheeks; give them back after
+        A.fatBefore = head.s.fatTarget; // puking empties this out
         break;
       case 'scream':
         app.sfx.scream();
@@ -73,10 +73,10 @@ export class Emotions {
       head.s.nose.t -= 0.25;
       head.forceBlink = 0;
     }
-    // Sick cut short: open the eyes and give the cheeks back.
+    // Sick cut short: open the eyes. If it already puked, it stays emptied out.
     if (A?.kind === 'sick' && !A.dripped && head) {
       head.forceBlink = 0;
-      head.s.fatTarget = A.fatBefore ?? head.s.fatTarget;
+      head.s.fatTarget = A.puked ? 0 : (A.fatBefore ?? head.s.fatTarget);
     }
     this.active = null;
   }
@@ -180,7 +180,7 @@ export class Emotions {
               A.gags = k;
               app.sfx.gag();
               head.s.jaw.kick(9);
-              head.s.fatTarget = Math.max(head.s.fatTarget, 0.35);
+              head.s.fatTarget = Math.min(1.15, A.fatBefore + 0.15 * k); // cheeks puff up
               head.s.scaleY.x = 0.94;
             }
           }
@@ -190,7 +190,6 @@ export class Emotions {
             app.sfx.vomitSound(PUKE_END - PUKE_START);
             app.st.rot.x.kick(4);
           }
-          head.s.fatTarget = 0.3;
           o.jaw = 0.85 + Math.sin(t * 40) * 0.04;
           o.rotX = 0.12;
           o.rotZ = Math.sin(t * 9) * 0.03;
@@ -204,12 +203,14 @@ export class Emotions {
           // Mostly outward, toward the viewer, so the arc is visible before it hits the floor.
           const dir = n.add(new THREE.Vector3(0, 0.15, 0.35));
           const u = (A.t - PUKE_START) / (PUKE_END - PUKE_START);
+          // The weight drains out with the vomit.
+          head.s.fatTarget = (A.fatBefore + 0.3) * Math.max(0, 1 - u * 1.2);
           app.vomit().stream(origin, dir, dt, 260 * Math.sin(Math.PI * Math.min(1, u * 1.15)) + 40);
         } else {
           if (!A.dripped) {
             A.dripped = true;
             head.forceBlink = 0;
-            head.s.fatTarget = A.fatBefore ?? 0;
+            head.s.fatTarget = 0;
             const uv1 = new THREE.Vector2().fromBufferAttribute(head.geo.attributes.uv1, head.anchors.lowerLip);
             app.painter().splat(uv1, 'vomit', 0.45);
             app.grunt('bleh');

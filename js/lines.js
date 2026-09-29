@@ -88,7 +88,55 @@ export const LIES = [
   'I am not a floating head.',
   'I work out every day.',
   'I did not eat the last cookie.',
+  'I have read every book I own.',
+  'I have never pressed the elevator button twice.',
+  'I know exactly what I am doing.',
+  'I have a body. It is just shy.',
+  'I have never talked to a plant.',
+  'I always floss. Twice. With enthusiasm.',
+  'I was the tallest one in my class.',
+  'I invented the high five.',
+  'I have never been stuck in a revolving door.',
+  'I can speak fluent dolphin.',
+  'I have never cried at a commercial.',
+  'I once arm-wrestled a bear and won.',
+  'I do not have a fear of ducks.',
+  'I remember everyone\'s name.',
+  'I am not ticklish.',
+  'I have never sent a text to the wrong person.',
+  'I am a trained professional.',
+  'I wake up at five every morning. Happily.',
+  'My hair is completely natural.',
+  'I have never tripped on flat ground.',
+  'I enjoy being poked.',
+  'I have never licked a battery.',
+  'I was not scared of the dark until I was twelve.',
+  'I have a very normal number of teeth.',
+  'I am definitely not a robot.',
+  'I have never lost an argument.',
+  'I know how the stock market works.',
+  'I was the lead singer of a very famous band.',
+  'I have never once said "you too" to a waiter who said enjoy your meal.',
+  'I only eat salad. Every day. For fun.',
+  'I have never googled myself.',
+  'I built the pyramids. Alone. On a weekend.',
+  'I love it when people explain things slowly to me.',
+  'I have never pushed a door that said pull.',
+  'This nose is its normal size.',
 ];
+
+// Shuffle bag: every lie gets told once before any repeats.
+let lieBag = [];
+export function nextLie() {
+  if (!lieBag.length) {
+    lieBag = [...LIES];
+    for (let i = lieBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [lieBag[i], lieBag[j]] = [lieBag[j], lieBag[i]];
+    }
+  }
+  return lieBag.pop();
+}
 
 const NONSENSE_A = ['The moon', 'My left nostril', 'A haunted spoon', 'Grandma', 'The government', 'A tiny horse', 'Your printer', 'The void', 'A confused pigeon', 'Steve'];
 const NONSENSE_B = ['is secretly', 'wants to become', 'was once', 'is legally married to', 'is afraid of', 'is powered by', 'invented', 'dreams about', 'sued'];

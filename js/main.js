@@ -11,7 +11,7 @@ import { Emotions } from './emotions.js';
 import { Vomit } from './vomit.js';
 import * as sfx from './audio.js';
 import { voiceState, loadVoices, speak, stopSpeaking, isTalking } from './voice.js';
-import { line, LIES, nonsense, pick } from './lines.js';
+import { line, nextLie, nonsense, pick } from './lines.js';
 import { makeDemoFace } from './demoFace.js';
 import { fallbackFit } from './fitcore.js';
 import { Spring } from './shape.js';
@@ -110,6 +110,7 @@ const st = {
   fire: 0,
   sour: 0,
   ptr: null,
+  sickAt: 0, // when a stuffed head throws up (ms), 0 = not scheduled
   saccade: new THREE.Vector2(),
   nextSaccade: 0,
 };
@@ -302,6 +303,7 @@ function installHead(canvas, fit) {
   bees.stop(true);
   emotions.stop();
   vomit.clear();
+  st.sickAt = 0; st.sickWarned = false;
   st.projectiles.forEach((p) => p.sp.removeFromParent());
   st.projectiles = [];
   st.chew = 0; st.fire = 0; st.sour = 0;
@@ -725,6 +727,8 @@ setTool('poke');
 // ---------- actions ----------
 function popHead() {
   st.popped = true;
+  st.sickAt = 0; // exploding already emptied the stomach
+  st.sickWarned = false;
   sfx.pop();
   grunt('yelp');
   const p = head.group.getWorldPosition(new THREE.Vector3());
@@ -865,6 +869,7 @@ function resetAll() {
   bees.stop(true);
   emotions.stop();
   vomit.clear();
+  st.sickAt = 0; st.sickWarned = false;
   $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
   head.look.set(0, 0);
   sfx.ding();
@@ -945,7 +950,7 @@ function showClip(blob, ext) {
   const share = $('#clipShare');
   const canShare = !!navigator.canShare?.({ files: [file] });
   share.classList.toggle('hidden', !canShare);
-  share.onclick = () => navigator.share({ files: [file], title: 'HEADCASE 3000' }).catch(() => {});
+  share.onclick = () => navigator.share({ files: [file], title: 'HEADCASE 4000' }).catch(() => {});
   $('#clip').classList.remove('hidden');
   $('#clipVideo').play().catch(() => {});
 }
@@ -962,11 +967,26 @@ function chew(seconds, then) {
   st.chew = seconds;
   st.chewThen = then;
 }
+// Six swallowed snacks fill the head up. Broccoli does not count: it gets spat out.
+const BITES_TO_FULL = 6;
+function isFull() { return head.s.fatTarget >= 0.99; }
+function swallow() {
+  const s = head.s;
+  sfx.gulp();
+  s.fatTarget = Math.min(1, s.fatTarget + 1 / BITES_TO_FULL);
+  st.rage = Math.max(0, st.rage - 12); // snacks calm the beast
+  if (isFull()) {
+    react('full', { force: true });
+    // Too much food. The body files a complaint in 5 to 7 seconds.
+    if (!st.sickAt) st.sickAt = now() + rnd(5000, 7000);
+    return true;
+  }
+  return false;
+}
 function eat(food) {
   if (!head || st.popped) return;
   st.lastInteraction = now();
-  const s = head.s;
-  if (food.fat > 0.05 && s.fatTarget >= 0.99) {
+  if (food.id !== 'broccoli' && isFull()) {
     sfx.spit();
     grunt('hmph');
     fx.burst(mouthWorld(), [food.emoji], 1, { speed: 6, gravity: -10, size: 0.5, dir: new THREE.Vector3(rnd(-0.5, 0.5), 0.6, 1) });
@@ -991,7 +1011,7 @@ function eat(food) {
       st.fire = 2.2;
       sfx.fireBreath(2);
       grunt('argh');
-      react('chili', { force: true });
+      if (!swallow()) react('chili', { force: true });
     });
     return;
   }
@@ -1003,17 +1023,13 @@ function eat(food) {
       head.s.twist.kick(6);
       sfx.squeak(0.5);
       grunt('hmph');
-      react('lemon', { force: true });
+      if (!swallow()) react('lemon', { force: true });
     });
     return;
   }
   chew(1.1, () => {
-    sfx.gulp();
-    s.fatTarget = Math.min(1, s.fatTarget + food.fat);
-    st.rage = Math.max(0, st.rage - 12); // snacks calm the beast
     if (food.id === 'donut') sfx.sparkle();
-    if (s.fatTarget >= 0.99) react('full', { force: true });
-    else react('yum', { force: true });
+    if (!swallow()) react('yum', { force: true });
     if (Math.random() < 0.5) setTimeout(() => { sfx.burp(); showBubble('*BURP*', 1200); }, 900);
   });
 }
@@ -1073,7 +1089,7 @@ const ACTIONS = {
     sfx.creak();
     const p = props.anchorWorld('nose', new THREE.Vector3());
     fx.burst(p, ['🤥', '🌳', '🪵'], 4, { speed: 1.5, size: 0.3 });
-    sayUser(pick(LIES));
+    sayUser(nextLie());
   },
   blep() {
     const on = props.toggle('tongue');
@@ -1358,6 +1374,19 @@ function frame() {
     // Idle chatter
     if (st.talkBack && tNow - st.lastInteraction > 30000) react('idle', { force: true });
 
+    if (st.sickAt) {
+      if (tNow >= st.sickAt - 1200 && !st.sickWarned) {
+        st.sickWarned = true;
+        grunt('uhoh');
+        showBubble('Uh oh… I ate too much.', 1400);
+      }
+      // Wait out a yeet or a pop, then let it all out.
+      if (tNow >= st.sickAt && !st.yeet && !st.popped) {
+        st.sickAt = 0;
+        st.sickWarned = false;
+        if (emotions.active?.kind !== 'sick') emotions.play('sick');
+      }
+    }
     painter.update(dt);
     updateProjectiles(dt);
     bees.update(dt, t);

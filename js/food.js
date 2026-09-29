@@ -1,11 +1,11 @@
 // Snack tray: drag food onto the head's mouth. The head handles the consequences.
 export const FOODS = [
-  { id: 'burger', emoji: '🍔', fat: 0.14 },
-  { id: 'pizza', emoji: '🍕', fat: 0.12 },
-  { id: 'donut', emoji: '🍩', fat: 0.1 },
-  { id: 'chili', emoji: '🌶️', fat: 0.02 },
-  { id: 'lemon', emoji: '🍋', fat: 0.02 },
-  { id: 'broccoli', emoji: '🥦', fat: 0 },
+  { id: 'burger', emoji: '🍔' },
+  { id: 'pizza', emoji: '🍕' },
+  { id: 'donut', emoji: '🍩' },
+  { id: 'chili', emoji: '🌶️' },
+  { id: 'lemon', emoji: '🍋' },
+  { id: 'broccoli', emoji: '🥦' },
 ];
 
 // tray: element to fill with food buttons. hooks: { mouth(): {x,y}|null, onNear(bool), onEat(food), onMiss(food, x, y) }

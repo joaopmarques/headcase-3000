@@ -111,7 +111,7 @@ export class ClipRecorder {
     g.textAlign = 'right';
     g.lineWidth = 5 * k;
     g.strokeStyle = '#111';
-    const wm = 'HEADCASE 3000™ • headcase-3000.vercel.app';
+    const wm = 'HEADCASE 4000™ • headcase-3000.vercel.app';
     g.strokeText(wm, W - 14 * k, H - 12 * k);
     g.fillStyle = '#ffe600';
     g.fillText(wm, W - 14 * k, H - 12 * k);
