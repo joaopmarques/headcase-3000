@@ -5,6 +5,7 @@ export const FOODS = [
   { id: 'donut', emoji: '🍩' },
   { id: 'chili', emoji: '🌶️' },
   { id: 'lemon', emoji: '🍋' },
+  { id: 'espresso', emoji: '☕' },
   { id: 'broccoli', emoji: '🥦' },
 ];
 

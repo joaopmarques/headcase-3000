@@ -519,3 +519,48 @@ export function puddleSplat() {
   lastPuddle = c.currentTime;
   burst(0.08, 0.25, { type: 'bandpass', f0: rnd(500, 1100), f1: 200, q: 3 });
 }
+
+// Achievement unlocked: a bright little arpeggio with a sparkle on top.
+export function fanfare() {
+  [523, 659, 784, 1047].forEach((f, i) => {
+    tone('square', [f, f], 0.12, 0.12, { when: i * 0.08 });
+    tone('sine', [f * 2, f * 2], 0.12, 0.06, { when: i * 0.08 });
+  });
+  tone('triangle', [1047, 1047], 0.5, 0.15, { when: 0.32 });
+  for (let i = 0; i < 5; i++) tone('sine', [rnd(2000, 3500), rnd(3000, 4500)], 0.06, 0.05, { when: 0.35 + i * 0.05 });
+}
+
+export function slurp() {
+  burst(0.35, 0.3, { type: 'bandpass', f0: 600, f1: 2200, q: 4 });
+  tone('sine', [300, 900], 0.3, 0.12);
+}
+
+// One snore: a gravelly inhale, then a whistly exhale.
+export function snore() {
+  vocal([{ v: 'o', to: 'a', f: [85, 70], d: 0.7, gap: 0.15 }], { pitch: 1, gravel: 1, vol: 0.45 });
+  tone('sine', [900, 500], 0.5, 0.05, { when: 0.9 });
+}
+
+// Toaster pop: a springy twang and a clack, then the little bell.
+export function toasterPop() {
+  const c = ac(), t = c.currentTime;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(180, t);
+  o.frequency.exponentialRampToValueAtTime(90, t + 0.25);
+  const lfo = c.createOscillator(), lg = c.createGain();
+  lfo.frequency.value = 32; lg.gain.value = 45;
+  lfo.connect(lg).connect(o.frequency);
+  env(g, t, 0.005, 0.35, 0.3);
+  o.connect(g).connect(master);
+  o.start(t); lfo.start(t); o.stop(t + 0.35); lfo.stop(t + 0.35);
+  burst(0.04, 0.5, { type: 'bandpass', f0: 2500, q: 2 });
+  toastDing(0.05);
+}
+
+export function toastDing(when = 0) {
+  // A small bell: a bright fundamental plus inharmonic partials that ring out.
+  for (const [f, v, d] of [[2093, 0.22, 1.4], [5230, 0.08, 0.7], [7350, 0.04, 0.4]]) {
+    tone('sine', [f, f * 0.998], d, v, { attack: 0.002, when });
+  }
+}

@@ -9,6 +9,7 @@ import { setupFood } from './food.js';
 import { Bees } from './bees.js';
 import { Emotions } from './emotions.js';
 import { Vomit } from './vomit.js';
+import { Achievements, ACHIEVEMENTS } from './achievements.js';
 import * as sfx from './audio.js';
 import { voiceState, loadVoices, speak, stopSpeaking, isTalking } from './voice.js';
 import { line, nextLie, nonsense, pick } from './lines.js';
@@ -109,6 +110,11 @@ const st = {
   lastChomp: 0,
   fire: 0,
   sour: 0,
+  caffeine: 0, // seconds of caffeine overload left
+  crash: 0,    // seconds of post-coffee nap left
+  lastJitterLook: 0,
+  lastSnore: 0,
+  chaosRunning: false,
   ptr: null,
   sickAt: 0, // when a stuffed head throws up (ms), 0 = not scheduled
   saccade: new THREE.Vector2(),
@@ -175,6 +181,152 @@ function updateRageUI() {
   document.body.classList.toggle('angry', pct > 70);
 }
 
+// ---------- achievements ----------
+// Achievement toast: an actual slice of toast pops up from the bottom of the screen.
+let toastSlot = 0;
+function toast(a) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  // Spread several at once across the screen; each gets its own spin.
+  const x = [50, 32, 68, 42, 58][toastSlot++ % 5] + rnd(-4, 4);
+  const spin = (Math.random() < 0.5 ? -1 : 1);
+  el.style.setProperty('--x', `${x}vw`);
+  el.style.setProperty('--peak', `${Math.round(innerHeight * rnd(0.52, 0.6) + 200)}px`);
+  el.style.setProperty('--r0', `${spin * -25}deg`);
+  el.style.setProperty('--r1', `${spin * rnd(6, 12)}deg`);
+  el.style.setProperty('--r2', `${spin * rnd(-6, -2)}deg`);
+  el.style.setProperty('--r3', `${spin * rnd(40, 80)}deg`);
+  el.style.setProperty('--dx', `${spin * rnd(40, 120)}px`);
+  el.innerHTML = '<div class="bread"></div><div class="label"><span class="medal"></span><small>ACHIEVEMENT TOASTED</small><strong></strong></div>';
+  el.querySelector('.medal').textContent = a.emoji;
+  el.querySelector('strong').textContent = a.name;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+  sfx.toasterPop();
+  updateTrophy(true);
+  if (!$('#achScreen').classList.contains('hidden')) renderAchievements();
+}
+const ach = new Achievements({ onUnlock: toast });
+function updateTrophy(bump = false) {
+  $('#trophyCount').textContent = `${ach.count}/${ach.total}`;
+  if (bump) {
+    const b = $('#trophyBtn');
+    b.classList.remove('bump');
+    void b.offsetWidth;
+    b.classList.add('bump');
+  }
+}
+function renderAchievements() {
+  $('#achCount').textContent = `${ach.count} / ${ach.total}`;
+  $('#achBar').style.width = `${(ach.count / ach.total) * 100}%`;
+  const grid = $('#achGrid');
+  grid.innerHTML = '';
+  for (const a of ACHIEVEMENTS) {
+    const got = ach.has(a.id);
+    const pr = ach.progress(a);
+    const el = document.createElement('div');
+    el.className = `ach-item${got ? '' : ' locked'}`;
+    const meta = got
+      ? `unlocked ${new Date(ach.unlocked[a.id]).toLocaleDateString()}`
+      : pr ? `${pr.value} / ${pr.need}` : 'locked';
+    el.innerHTML = `<div class="medal">${got ? a.emoji : '🔒'}</div><div><b></b><span class="desc"></span><span class="meta"></span></div>`;
+    el.querySelector('b').textContent = a.name;
+    el.querySelector('.desc').textContent = a.desc;
+    el.querySelector('.meta').textContent = meta;
+    grid.appendChild(el);
+  }
+}
+$('#trophyBtn').addEventListener('click', () => {
+  sfx.unlock();
+  sfx.ding();
+  renderAchievements();
+  $('#achScreen').classList.remove('hidden');
+});
+$('#achClose').addEventListener('click', () => $('#achScreen').classList.add('hidden'));
+$('#achScreen').addEventListener('click', (e) => { if (e.target.id === 'achScreen') $('#achScreen').classList.add('hidden'); });
+// Hold to reset: the button inflates and shakes while held, and pops when it is done.
+{
+  const btn = $('#achReset');
+  const HOLD_MS = 2000;
+  let t0 = 0, raf = 0, lastSqueak = 0;
+  const setP = (p) => {
+    btn.style.setProperty('--p', p.toFixed(3));
+    // Shake harder the longer it is held.
+    const j = p * p;
+    btn.style.translate = `${rnd(-4, 4) * j}px ${rnd(-3, 3) * j}px`;
+    btn.style.rotate = `${rnd(-7, 7) * j}deg`;
+  };
+  const tick = (now) => {
+    const p = Math.min(1, (now - t0) / HOLD_MS);
+    setP(p);
+    if (now - lastSqueak > 160) { lastSqueak = now; sfx.squeak(0.7 + p * 1.1); }
+    if (p >= 1) return done();
+    raf = requestAnimationFrame(tick);
+  };
+  const start = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (raf) return;
+    sfx.unlock();
+    btn.classList.add('holding');
+    t0 = performance.now();
+    lastSqueak = 0;
+    raf = requestAnimationFrame(tick);
+  };
+  const cancel = () => {
+    if (!raf) return;
+    cancelAnimationFrame(raf);
+    raf = 0;
+    btn.classList.remove('holding');
+    setP(0);
+    sfx.squeak(0.5);
+  };
+  const done = () => {
+    raf = 0;
+    btn.classList.remove('holding');
+    btn.classList.add('popped');
+    setP(0);
+    setTimeout(() => btn.classList.remove('popped'), 500);
+    sfx.pop();
+    const r = btn.getBoundingClientRect();
+    // Confetti on top of the trophy case (stage stamps would sit behind the overlay).
+    for (let i = 0; i < 10; i++) {
+      const el = document.createElement('div');
+      el.className = 'stamp jab';
+      el.textContent = pick(['💥', '🏆', '✨', '🎉']);
+      Object.assign(el.style, { position: 'fixed', zIndex: 80, left: `${r.left + r.width / 2 + rnd(-70, 70)}px`, top: `${r.top + rnd(-50, 20)}px`, fontSize: '40px' });
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 700);
+    }
+    ach.reset();
+    updateTrophy();
+    renderAchievements();
+    showBubble('All trophies gone. Like my body.', 2200);
+  };
+  btn.addEventListener('pointerdown', start);
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, cancel);
+  btn.addEventListener('click', (e) => e.stopPropagation());
+  // Keyboard: hold Space or Enter.
+  btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
+  btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') cancel(); });
+}
+updateTrophy();
+
+// Credit: hovering it floats a photo of the culprit next to the cursor.
+{
+  const credit = $('#credit'), photo = $('#creditPhoto');
+  const place = (e) => {
+    // Below and to the right of the cursor, so the credit line stays readable.
+    const w = photo.offsetWidth || 252, h = photo.offsetHeight || 190;
+    const x = Math.min(e.clientX + 22, innerWidth - w - 12);
+    const y = Math.min(e.clientY + 26, innerHeight - h - 12);
+    photo.style.translate = `${x}px ${y}px`;
+  };
+  credit.addEventListener('pointerenter', (e) => { place(e); photo.classList.add('show'); });
+  credit.addEventListener('pointermove', place);
+  credit.addEventListener('pointerleave', () => photo.classList.remove('show'));
+}
+
 function talk(text, opts = {}) {
   const ok = speak(text, opts);
   if (!ok) {
@@ -227,7 +379,7 @@ function stamp(emoji, x, y, cls = '') {
 
 // ---------- bees + feelings ----------
 const app = {
-  head: () => head, props: () => props, painter: () => painter, vomit: () => vomit,
+  head: () => head, props: () => props, painter: () => painter, vomit: () => vomit, ach: () => ach,
   rig, camera, stage, fx, sfx, st, line,
   grunt: (k) => grunt(k), react: (k, o) => react(k, o), addRage: (n) => addRage(n),
   showBubble: (t, ms) => showBubble(t, ms), talk: (t, o) => talk(t, o),
@@ -240,6 +392,7 @@ $$('[data-emote]').forEach((b) => b.addEventListener('click', () => {
   if (!head || st.popped) return;
   st.lastInteraction = now();
   emotions.play(b.dataset.emote);
+  ach.bumpSet('feels', b.dataset.emote);
 }));
 // Track the pointer anywhere on the page, for the eyes.
 window.addEventListener('pointermove', (e) => { st.ptr = { x: e.clientX, y: e.clientY, t: now() }; });
@@ -304,6 +457,7 @@ function installHead(canvas, fit) {
   emotions.stop();
   vomit.clear();
   st.sickAt = 0; st.sickWarned = false;
+  st.caffeine = 0; st.crash = 0;
   st.projectiles.forEach((p) => p.sp.removeFromParent());
   st.projectiles = [];
   st.chew = 0; st.fire = 0; st.sour = 0;
@@ -360,6 +514,7 @@ function hitTest(e) {
 }
 
 function doPoke(hit, e) {
+  ach.bump('poke');
   head.poke(hit.vi, 0.3);
   st.rot.y.kick(hit.local.x * 4);
   st.rot.x.kick(-hit.local.y * 3);
@@ -384,6 +539,7 @@ function doPoke(hit, e) {
 }
 
 function doBonk(hit, e) {
+  ach.bump('bonk');
   head.s.scaleY.x = 0.42;
   head.s.scaleY.v = 0;
   head.poke(hit.vi, 0.2, 0.5);
@@ -401,6 +557,7 @@ function doBonk(hit, e) {
 }
 
 function doSlap(dir, hit, e) {
+  ach.bump('slap');
   st.rot.y.kick(dir * 20);
   st.rot.z.kick(-dir * 6);
   st.pos.x.kick(dir * 6);
@@ -423,6 +580,7 @@ function doTickle(hit) {
   if (t - st.lastGiggle > 380) {
     st.lastGiggle = t;
     sfx.giggle();
+    ach.bump('giggle');
     sfx.feather();
     grunt('hehe');
     head.s.jaw.kick(6);
@@ -464,6 +622,7 @@ function landProjectile(p) {
   const { hit, kind } = p;
   if (hit && head && !st.popped) {
     painter.splat(hit.uv1, kind);
+    ach.bump('splat');
     head.poke(hit.vi, 0.32, 0.42);
     st.rot.y.kick(hit.local.x * 3);
     st.rot.x.kick(-hit.local.y * 2);
@@ -522,6 +681,7 @@ function cyclePen() {
 }
 function sharpieAt(hit) {
   painter.stroke(hit.uv1, penColor());
+  ach.bump('stroke');
   const t = now();
   if (t - st.lastMarker > 70) { st.lastMarker = t; sfx.marker(); }
   st.strokes++;
@@ -592,7 +752,7 @@ canvas.addEventListener('pointermove', (e) => {
       // Yell louder the further you stretch.
       const P = st.pinch;
       if (P.yelled < 1 && P.len > 0.4) { P.yelled = 1; grunt('ow'); react('pinchHold', { force: true }); addRage(3); }
-      if (P.yelled < 2 && P.len > 0.85) { P.yelled = 2; sfx.rip(); grunt('yelp'); react('pinchMax', { force: true }); addRage(5); }
+      if (P.yelled < 2 && P.len > 0.85) { P.yelled = 2; ach.unlock('taffy'); sfx.rip(); grunt('yelp'); react('pinchMax', { force: true }); addRage(5); }
     }
   } else if (st.tool === 'slap') {
     if (Math.hypot(vx, vy) > 900 && t > st.slapCooldown) {
@@ -646,10 +806,14 @@ const CAT_TITLES = {
   tools: 'TOOLS OF TORMENT', emotions: 'FEELINGS', chaos: 'CHAOS', food: 'SNACK BAR',
   drip: 'DRIP', voice: 'VOICE BOX', media: 'PHOTO & VIDEO',
 };
+const CAT_NOTES = { food: '↓ drag a snack into the mouth', chaos: 'hold 🎈 to pump' };
 function setCategory(cat) {
   $$('[data-cat]').forEach((b) => b.classList.toggle('on', b.dataset.cat === cat));
   $$('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== cat; });
   $('#tbTitle').textContent = CAT_TITLES[cat];
+  const note = CAT_NOTES[cat];
+  $('#tbNote').hidden = !note;
+  $('#tbNote').textContent = note ?? '';
   $('#toolbar .tb-body').scrollLeft = 0;
 }
 $$('[data-cat]').forEach((b) => b.addEventListener('click', () => {
@@ -729,6 +893,7 @@ function popHead() {
   st.popped = true;
   st.sickAt = 0; // exploding already emptied the stomach
   st.sickWarned = false;
+  ach.bump('pop');
   sfx.pop();
   grunt('yelp');
   const p = head.group.getWorldPosition(new THREE.Vector3());
@@ -766,6 +931,7 @@ function toggleDisco() {
   document.body.classList.toggle('disco', st.disco);
   $('[data-action="disco"]').classList.toggle('on', st.disco);
   if (st.disco) {
+    ach.unlock('nightfever');
     sfx.startDisco(() => {
       if (!head) return;
       st.pos.y.v = 2.2;
@@ -807,11 +973,12 @@ function yeet(self = false) {
   st.yeet = { t: 0, dir: Math.random() < 0.5 ? -1 : 1, self };
   sfx.whoosh(0.9);
   grunt(self ? 'argh' : 'woo');
-  if (!self) react('yeet', { force: true });
+  if (!self) { react('yeet', { force: true }); ach.unlock('yeet'); }
 }
 
 function meltdown() {
   st.meltdown = true;
+  ach.unlock('meltdown');
   sfx.scream();
   grunt('argh');
   const text = line('rage');
@@ -870,6 +1037,8 @@ function resetAll() {
   emotions.stop();
   vomit.clear();
   st.sickAt = 0; st.sickWarned = false;
+  if (st.crash > 0 || st.caffeine > 0) head.forceBlink = 0;
+  st.caffeine = 0; st.crash = 0;
   $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
   head.look.set(0, 0);
   sfx.ding();
@@ -900,6 +1069,7 @@ async function toggleMimic() {
     const rate = p <= 1 ? 0.55 + p * 0.9 : 1.45 + (p - 1) * 0.5;
     showBubble('🦜🦜🦜', buf.duration / rate * 1000 + 300);
     await mimic.play(rate);
+    ach.unlock('copycat');
     st.userSpeaking = false;
     st.lastInteraction = now();
     return;
@@ -932,6 +1102,7 @@ function toggleRec() {
   recorder.start(6, {
     onTick: (sec) => { badge.textContent = `● REC ${sec}s`; },
     onDone: (blob, ext) => {
+      ach.unlock('director');
       badge.classList.add('hidden');
       btn.classList.remove('on');
       sfx.ding();
@@ -976,6 +1147,7 @@ function swallow() {
   s.fatTarget = Math.min(1, s.fatTarget + 1 / BITES_TO_FULL);
   st.rage = Math.max(0, st.rage - 12); // snacks calm the beast
   if (isFull()) {
+    ach.unlock('glutton');
     react('full', { force: true });
     // Too much food. The body files a complaint in 5 to 7 seconds.
     if (!st.sickAt) st.sickAt = now() + rnd(5000, 7000);
@@ -1009,9 +1181,25 @@ function eat(food) {
   if (food.id === 'chili') {
     chew(0.7, () => {
       st.fire = 2.2;
+      ach.unlock('dragon');
       sfx.fireBreath(2);
       grunt('argh');
       if (!swallow()) react('chili', { force: true });
+    });
+    return;
+  }
+  if (food.id === 'espresso') {
+    chew(0.5, () => {
+      sfx.slurp();
+      ach.unlock('wired');
+      if (!swallow()) {
+        const text = line('caffeine');
+        showBubble(text, 2200);
+        if (st.talkBack) talk(text, { rate: 2.6, pitch: 1.7 });
+      }
+      st.caffeine = 4.5;
+      st.crash = 0;
+      grunt('woo');
     });
     return;
   }
@@ -1055,9 +1243,66 @@ setupFood($('#foodTray'), stage, {
   },
 });
 
+// ---------- chaos button: five random things in a row ----------
+// A random spot on the face, dressed up like a pointer hit, so the tool functions work as usual.
+function randomFaceHit() {
+  let vi = 0;
+  for (let k = 0; k < 40; k++) {
+    vi = Math.floor(Math.random() * head.n);
+    if (head.base[vi * 3 + 2] > 0.45) break;
+  }
+  const local = head.vertexPos(vi, new THREE.Vector3());
+  const point = head.mesh.localToWorld(local.clone());
+  const uv1 = new THREE.Vector2().fromBufferAttribute(head.geo.attributes.uv1, vi);
+  const p = point.clone().project(camera);
+  const r = stage.getBoundingClientRect();
+  const evt = { clientX: r.left + (p.x * 0.5 + 0.5) * r.width, clientY: r.top + (-p.y * 0.5 + 0.5) * r.height };
+  return { hit: { point, local, vi, uv1 }, evt };
+}
+const CHAOS_STEPS = [
+  ['POKE', () => { const { hit, evt } = randomFaceHit(); doPoke(hit, evt); }],
+  ['SLAP', () => { const { hit, evt } = randomFaceHit(); doSlap(Math.random() < 0.5 ? -1 : 1, hit, evt); }],
+  ['BONK', () => { const { hit, evt } = randomFaceHit(); doBonk(hit, evt); }],
+  ['PIE', () => { const { evt } = randomFaceHit(); const keep = st.ammo; st.ammo = pick(AMMO_ORDER); throwAt(evt); st.ammo = keep; }],
+  ['TWIST', () => ACTIONS.twist()],
+  ['SPIN', () => ACTIONS.spin()],
+  ['NOODLE', () => ACTIONS.noodle()],
+  ['LIE', () => ACTIONS.lie()],
+  ['SNEEZE', () => emotions.play('sneeze')],
+  ['WINK', () => emotions.play('wink')],
+  ['SCREAM', () => emotions.play('scream')],
+  ['LOVE', () => emotions.play('love')],
+  ['PUMP', () => { for (let i = 0; i < 3; i++) setTimeout(pumpOnce, i * 150); }],
+];
+function runChaos() {
+  if (st.chaosRunning || st.popped) return;
+  st.chaosRunning = true;
+  ach.unlock('agentofchaos');
+  const btn = $('[data-action="chaos"]');
+  btn.classList.add('on');
+  const hint = $('#hint');
+  const oldHint = hint.textContent;
+  const steps = [...CHAOS_STEPS].sort(() => Math.random() - 0.5).slice(0, 5);
+  sfx.slideWhistle(true);
+  react('chaos', { force: true });
+  steps.forEach(([name, fn], i) => {
+    setTimeout(() => {
+      if (!head || st.popped) return;
+      hint.textContent = `🎲 CHAOS ${i + 1}/5: ${name}!`;
+      fn();
+    }, 700 + i * 1100);
+  });
+  setTimeout(() => {
+    st.chaosRunning = false;
+    btn.classList.remove('on');
+    hint.textContent = oldHint;
+  }, 700 + steps.length * 1100 + 400);
+}
+
 const ACTIONS = {
   melt() {
     const on = (head.s.meltTarget = head.s.meltTarget ? 0 : 1);
+    if (on) ach.unlock('puddle');
     $('[data-action="melt"]').classList.toggle('on', !!on);
     if (on) {
       sfx.sizzle(2);
@@ -1083,6 +1328,7 @@ const ACTIONS = {
     setTimeout(() => { if (head) { head.s.scaleY.t = 1; sfx.slideWhistle(false); } }, 1700);
   },
   lie() {
+    ach.bump('lie');
     const s = head.s.nose;
     s.t = Math.min(2.4, s.t + 0.45);
     s.kick(3);
@@ -1108,6 +1354,7 @@ const ACTIONS = {
     react('spin', { force: true });
   },
   fry: deepFry,
+  chaos: runChaos,
   bees() {
     const btn = $('[data-action="bees"]');
     if (bees.active) { bees.stop(true); btn.classList.remove('on'); sfx.whoosh(0.4); return; }
@@ -1143,6 +1390,7 @@ $$('[data-prop]').forEach((b) => b.addEventListener('click', () => {
   if (!head) return;
   sfx.unlock();
   const on = props.toggle(b.dataset.prop);
+  if (Object.values(props.on).filter(Boolean).length >= 5 && ['googly', 'hat', 'stache', 'shades', 'clown'].every((k) => props.on[k])) ach.unlock('driplord');
   b.classList.toggle('on', on);
   if (on) PROP_SFX[b.dataset.prop]?.();
   else sfx.squeak(0.7);
@@ -1286,6 +1534,30 @@ function frame() {
     st.rot.x.t += emo.rotX;
     // Tilt like a curious dog while listening to the mic.
     st.rot.z.t = (mimic.state === 'recording' ? 0.14 : 0) + emo.rotZ;
+    // Espresso: vibrate first, nap after.
+    if (st.caffeine > 0) {
+      st.caffeine -= dt;
+      st.rot.z.x += rnd(-0.04, 0.04);
+      st.rot.y.x += rnd(-0.03, 0.03);
+      st.pos.x.x += rnd(-0.025, 0.025);
+      if (st.caffeine <= 0) { st.crash = 5; st.lastSnore = 0; }
+    } else if (st.crash > 0) {
+      st.crash -= dt;
+      st.rot.x.t += 0.22;
+      st.rot.z.t += 0.14;
+      if (tNow - st.lastSnore > 1700) {
+        st.lastSnore = tNow;
+        sfx.snore();
+        const top = props.anchorWorld('top', new THREE.Vector3());
+        fx.burst(top, ['💤'], 1, { speed: 1, gravity: 0.8, size: 0.4, life: 1.8, dir: new THREE.Vector3(0.4, 1, 0.2) });
+      }
+      if (st.crash <= 0) {
+        head.forceBlink = 0;
+        const text = line('crash');
+        showBubble(text, 2200);
+        if (st.talkBack) talk(text);
+      }
+    }
     for (const s of [st.rot.x, st.rot.y, st.rot.z, st.pos.x, st.pos.y, st.scale]) s.step(dt);
 
     // Mouth: speech flaps, tongue keeps it ajar, tickles make it laugh.
@@ -1322,6 +1594,14 @@ function frame() {
     jawT = Math.max(jawT, emo.jaw);
     head.s.jaw.t = jawT;
     head.s.brow.t = st.meltdown ? -1 : head.s.inflate.t * 0.6 + (isTalking() ? 0.15 * Math.sin(t * 5) : 0) + emo.brow;
+    if (st.caffeine > 0) {
+      head.s.brow.t += 0.9;
+      head.s.jaw.t = Math.max(head.s.jaw.t, 0.08 + 0.12 * Math.abs(Math.sin(t * 38)));
+    } else if (st.crash > 0) {
+      head.forceBlink = 0.62; // droopy eyelids
+      head.s.jaw.t = Math.max(head.s.jaw.t, 0.12);
+      head.s.brow.t -= 0.3;
+    }
 
     // Eyes: follow the pointer, wander when it is still, or do what the feeling says.
     let lookT = emo.look;
@@ -1339,6 +1619,10 @@ function frame() {
       }
       lookT = st.saccade;
     }
+    if (st.caffeine > 0) {
+      if (tNow - st.lastJitterLook > 90) { st.lastJitterLook = tNow; st.saccade.set(rnd(-1, 1), rnd(-0.6, 0.6)); }
+      lookT = st.saccade;
+    } else if (st.crash > 0) lookT = st.saccade.set(0, -0.7);
     head.look.lerp(lookT, Math.min(1, dt * 18));
 
     // Deflate after the pumping stops. Loudly.

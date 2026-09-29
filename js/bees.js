@@ -73,6 +73,7 @@ export class Bees {
     sfx.slap();
     fx.burst(best.sp.position, ['💥', '✨'], 4, { speed: 2, size: 0.25, life: 0.5 });
     react('swat', { force: true });
+    this.app.ach?.().bump('swat');
     if (!this.active) {
       const gen = this.gen;
       setTimeout(() => {

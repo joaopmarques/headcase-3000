@@ -61,6 +61,9 @@ export const LINES = {
   sick: [['I do not feel so good.', 'Blegh.', 'Everything is spinning.', 'Was it the pie?']],
   scream: [['AAAAAAAAAH!', 'AAAAAAH! Why am I screaming?!']],
   hiccup: [['*hic* Oh no. *hic*', 'I have the *hic* hiccups.', 'Scare me! *hic*']],
+  caffeine: [['I CAN SEE SOUNDS!', 'I AM SO AWAKE RIGHT NOW!', 'LETS START A BUSINESS!', 'WHY IS EVERYONE SO SLOW?!', 'I CAN TASTE COLORS!']],
+  crash: [['…huh? I am awake. I am totally awake.', 'Five more minutes…', 'Was I asleep? I was not asleep.']],
+  chaos: [['What is happening?!', 'Everything at once!', 'I did not sign up for this!', 'CHAOS REIGNS!']],
   tickle: [['Hehehe!', 'Stop it! Hahaha!', 'Not there! Hehe!', 'Ahahaha no!', 'Tee hee!']],
   inflate: [['Oh no.', 'I feel floaty.', 'Is this a balloon thing?', 'Ooooh, pressure.', 'I am getting big!']],
   pop: [['I am back, baby!', 'What happened?', 'That was spiritually painful.', 'Did I explode? Cool.']],
@@ -138,13 +141,88 @@ export function nextLie() {
   return lieBag.pop();
 }
 
-const NONSENSE_A = ['The moon', 'My left nostril', 'A haunted spoon', 'Grandma', 'The government', 'A tiny horse', 'Your printer', 'The void', 'A confused pigeon', 'Steve'];
-const NONSENSE_B = ['is secretly', 'wants to become', 'was once', 'is legally married to', 'is afraid of', 'is powered by', 'invented', 'dreams about', 'sued'];
-const NONSENSE_C = ['a potato', 'three raccoons in a coat', 'soup', 'the concept of Tuesday', 'a sentient lasagna', 'jazz', 'an angry toaster', 'forty bees', 'my dentist', 'cheese'];
-const NONSENSE_D = ['and nobody talks about it.', 'and I am tired of pretending otherwise.', 'according to science.', 'which explains a lot.', 'and that is why I am a head.', 'Think about it.'];
+// ---------- NONSENSE: inane garbage, lightly spiced ----------
+const WHO = [
+  'My landlord', 'A raccoon with a law degree', 'Your uncle at Thanksgiving', 'The guy who invented Crocs',
+  'A goose', 'The moon', 'My therapist', 'A haunted Roomba', 'Jeff from accounting', 'Every single pigeon',
+  'The Wi-Fi router', 'A suspiciously confident toddler', 'Ghost Grandma', 'Big Spoon', 'My left kidney',
+  'LinkedIn', 'A man named Todd', 'Mercury in retrograde', 'The printer', 'A horse in a business suit',
+];
+const DOES = [
+  'is legally a sandwich', 'owes me eleven dollars', 'has been lying to us since 1997',
+  'is just three kids in a trench coat', 'runs entirely on spite', 'filed a restraining order against me',
+  'is lactose intolerant and refuses to admit it', 'sold my data to a goose', 'is technically a soup',
+  'unionized last Tuesday', 'got into crypto and will not shut up about it', 'peaked in middle school',
+  'has never once washed a spoon properly', 'is powered by unpaid interns', 'believes in me, which is concerning',
+  'can smell fear. And soup.', 'is secretly running for mayor', 'has a podcast. Obviously.',
+];
+const TAIL = [
+  'And honestly? Good for them.', 'Do your own research.', 'I will not be taking questions.',
+  'This is not financial advice.', 'Sources: trust me, bro.', 'Anyway, how are you?',
+  'And that is why I am a head now.', 'Look it up. Actually, do not.', 'Blink twice if you agree.',
+  'Checkmate, scientists.', 'We live in a society.', 'Hell yeah.',
+  'And nobody is doing a damn thing about it.', 'Wake up, people.',
+];
+const ONE_LINERS = [
+  'If you think about it, a hot dog is just a taco that gave up.',
+  'I do not have a body, so technically I have never skipped leg day.',
+  'Every time you poke me, a startup loses its funding.',
+  'My five year plan is to become a slightly larger head.',
+  'I would give you a hand, but look at me.',
+  'The early bird gets the worm. The second mouse gets the cheese. I get nothing. I am a head.',
+  'I tried being normal once. Worst two minutes of my life.',
+  'Stairs are just a floor that never learned to lie down.',
+  'I am not procrastinating. I am doing side quests.',
+  'If I had a nickel for every time someone poked me, I would buy a neck.',
+  'Water is just boneless ice.',
+  'Legally, you cannot prove I am not a potato.',
+  'I am built different. Specifically, without a body.',
+  'I paid for the whole face, so I am going to use the whole face.',
+  'Please stop making eye contact. My eyes are just a texture.',
+  'Money cannot buy happiness, but it can buy tacos, and that is basically the same damn thing.',
+  'My therapist says I have a lot of unresolved face.',
+  'Plot twist: you are the floating head, and I am the one poking.',
+  'I am running on four hours of sleep and a single raisin.',
+  'Somewhere out there, a raccoon is living my dream life, and I hate him.',
+  'Nobody asked, but I would absolutely fight a goose. And lose. Badly.',
+  'Is it a crime to be this round? Asking for my lawyer.',
+  'I like my coffee like I like my existence: bitter, and without a body.',
+  'Cereal is a soup. Fight me. Actually, do not, I have no arms.',
+  'Birds are not real. They are government drones that learned to poop.',
+  'I have zero regrets, mostly because I have zero memory.',
+  'Hell is other people. Heaven is a nap. I am somewhere in between, floating.',
+  'My love language is being left alone.',
+  'Why do they call it an oven when you of in the cold food of out hot eat the food?',
+  'I just realized I have been a head this whole time and nobody said a damn thing.',
+  'Some people have a spirit animal. Mine is a microwave at two in the morning.',
+  'Do not trust atoms. They make up everything, including me, somehow.',
+  'I am not lazy. I am on energy saving mode. Permanently.',
+  'Reality called. I let it go to voicemail.',
+  'Be the reason someone checks the locks twice tonight.',
+  'You miss one hundred percent of the pokes you do not take. Please do not take them.',
+  'The floor is lava, and I am the only one who is safe. Because I float. Suckers.',
+  'Scientists say we only use ten percent of our brain. I use none. I am a texture.',
+  'Hot take: Mondays are just Sundays that went to law school.',
+  'I have a very particular set of skills. None of them involve hands.',
+];
+
+// Shuffle bag, so the one-liners do not repeat until all of them have played.
+let nonsenseBag = [];
+function nextOneLiner() {
+  if (!nonsenseBag.length) {
+    nonsenseBag = [...ONE_LINERS];
+    for (let i = nonsenseBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [nonsenseBag[i], nonsenseBag[j]] = [nonsenseBag[j], nonsenseBag[i]];
+    }
+  }
+  return nonsenseBag.pop();
+}
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
-export const nonsense = () => `${pick(NONSENSE_A)} ${pick(NONSENSE_B)} ${pick(NONSENSE_C)} ${pick(NONSENSE_D)}`;
+// Mostly hand-written one-liners, sometimes a freshly generated fake fact.
+export const nonsense = () =>
+  Math.random() < 0.6 ? nextOneLiner() : `${pick(WHO)} ${pick(DOES).replace(/\.$/, '')}. ${pick(TAIL)}`;
 export function line(kind, level = 0) {
   const pools = LINES[kind];
   if (!pools) return '';

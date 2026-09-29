@@ -61,7 +61,16 @@
     <h1 aria-label="HEADCASE 4000">
       <span>H</span><span>E</span><span>A</span><span>D</span><span>C</span><span>A</span><span>S</span><span>E</span><em>4000™</em>
     </h1>
+    <div class="credit" id="credit">made by a very, very bored <a href="https://jpmarqu.es" target="_blank" rel="noopener">jpmarqu.es</a></div>
   </header>
+
+  <figure id="creditPhoto" aria-hidden="true">
+    <img src="me.jpg" alt="" width="640" height="426" />
+    <figcaption>The developer is taking credit for themselves; Claude did it all (mostly).</figcaption>
+  </figure>
+
+  <button id="trophyBtn" class="trophy" title="Achievements">🏆<span id="trophyCount">0/0</span></button>
+  <div id="toasts" aria-live="polite"></div>
 
   <div id="rage" aria-label="Rage-o-meter">
     <div class="rage-title">RAGE-O-METER</div>
@@ -88,7 +97,10 @@
 
   <!-- Tool bar: shows the items of the selected wheel category -->
   <section id="toolbar">
-    <div class="tb-tab" id="tbTitle">TOOLS OF TORMENT</div>
+    <div class="tb-head">
+      <div class="tb-tab" id="tbTitle">TOOLS OF TORMENT</div>
+      <div class="tb-note" id="tbNote" hidden></div>
+    </div>
     <div class="tb-body">
       <div class="tb-items" data-panel="tools">
         <button class="item" data-tool="poke"><b>👉</b>POKE</button>
@@ -111,6 +123,7 @@
       </div>
 
       <div class="tb-items" data-panel="chaos" hidden>
+        <button class="item chaos-btn" data-action="chaos"><b>🎲</b>CHAOS!<small>5 random things</small></button>
         <button class="item" data-action="pump" title="Hold to pump"><b>🎈</b>PUMP<small>hold it</small></button>
         <button class="item" data-action="lie"><b>🤥</b>TELL A LIE</button>
         <button class="item" data-action="melt"><b>🫠</b>MELT</button>
@@ -127,7 +140,6 @@
 
       <div class="tb-items" data-panel="food" hidden>
         <div id="foodTray" class="tray" title="Drag food into the mouth"></div>
-        <p class="tb-note">⬅ drag a snack<br />into the mouth</p>
       </div>
 
       <div class="tb-items" data-panel="drip" hidden>
@@ -214,6 +226,16 @@
         <button id="clipShare" class="hidden">📤 SHARE</button>
       </div>
       <p class="fine">Text-to-speech voices are not in the clip (browsers keep them private). Sounds and MIMIC ME are.</p>
+    </div>
+  </div>
+
+  <div id="achScreen" class="overlay hidden">
+    <div class="card ach">
+      <button id="achClose" class="x" aria-label="Close">✖</button>
+      <h2>TROPHY<br />CASE</h2>
+      <div class="ach-progress"><div class="ach-bar"><i id="achBar"></i></div><span id="achCount">0 / 0</span></div>
+      <div id="achGrid" class="ach-grid"></div>
+      <p class="fine">Progress is saved in this browser only. <button id="achReset" class="hold-reset" title="Hold to wipe all progress"><span>🗑️ HOLD TO RESET</span></button></p>
     </div>
   </div>
 

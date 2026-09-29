@@ -187,6 +187,7 @@ export class Emotions {
         } else if (A.t < PUKE_END) {
           if (!A.puked) {
             A.puked = true;
+            app.ach?.().unlock('technicolor');
             app.sfx.vomitSound(PUKE_END - PUKE_START);
             app.st.rot.x.kick(4);
           }
