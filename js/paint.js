@@ -5,6 +5,7 @@ export const AMMO = {
   pie: { emoji: '🥧', name: 'PIE', base: '#fff4dc', edge: '#f1dcb0', bits: '#b87333', drip: '#fff4dc' },
   tomato: { emoji: '🍅', name: 'TOMATO', base: '#e3261b', edge: '#b3140c', bits: '#ffd84a', drip: '#d9200f' },
   egg: { emoji: '🥚', name: 'EGG', base: '#fbfbf2', edge: '#e8e6d4', bits: '#ffb300', drip: '#f7f3dc', yolk: true },
+  vomit: { emoji: '🤮', name: 'VOMIT', base: '#a9c940', edge: '#8db52b', bits: '#e8892c', drip: '#9acd32' },
   water: { emoji: '💧', name: 'WATER', base: 'rgba(120,200,255,0.45)', edge: 'rgba(80,160,255,0.35)', bits: 'rgba(255,255,255,0.7)', drip: 'rgba(110,190,255,0.45)', fade: true },
 };
 export const AMMO_ORDER = ['pie', 'tomato', 'egg', 'water'];
@@ -44,10 +45,10 @@ export class Painter {
     this.lastStroke = null;
   }
 
-  splat(uv1, kind) {
+  splat(uv1, kind, scale = 1) {
     const h = this.head, A = AMMO[kind], ctx = h.paintCtx;
     const { x, y, sx } = h.paintPx(uv1);
-    const r = rnd(60, 85);
+    const r = rnd(60, 85) * scale;
     if (A.fade) {
       // Water goes on the wet layer, which dries off after a few seconds.
       blob(h.wetCtx, x, y, r * 1.3, sx, A.base);

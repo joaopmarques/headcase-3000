@@ -486,3 +486,36 @@ export function startBuzz() {
     },
   };
 }
+
+// Retch: a gravelly "BLEUGH" over a gurgling, wet rush.
+export function vomitSound(dur = 1.4) {
+  vocal([{ v: 'u', to: 'a', f: [180, 120], d: 0.35 }, { v: 'a', to: 'u', f: [140, 90], d: dur - 0.35 }], { pitch: 1, gravel: 1, vol: 0.55 });
+  const c = ac(), t = c.currentTime;
+  const s = noise(), f = c.createBiquadFilter(), g = c.createGain(), am = c.createGain();
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(700, t);
+  f.frequency.linearRampToValueAtTime(1600, t + dur * 0.4);
+  f.frequency.linearRampToValueAtTime(500, t + dur);
+  f.Q.value = 4;
+  // Gurgle: wobble the volume fast and unevenly.
+  const lfo = c.createOscillator(), lg = c.createGain();
+  lfo.frequency.value = 13; lg.gain.value = 0.35;
+  lfo.connect(lg).connect(am.gain);
+  am.gain.value = 0.6;
+  env(g, t, 0.05, 0.7, dur);
+  s.connect(f).connect(am).connect(g).connect(master);
+  s.start(t); lfo.start(t);
+  s.stop(t + dur + 0.1); lfo.stop(t + dur + 0.1);
+}
+
+export function gag() {
+  vocal([{ v: 'u', to: 'o', f: [210, 170], d: 0.18 }], { pitch: 1, gravel: 0.8, vol: 0.45 });
+}
+
+let lastPuddle = 0;
+export function puddleSplat() {
+  const c = ac();
+  if (c.currentTime - lastPuddle < 0.07) return;
+  lastPuddle = c.currentTime;
+  burst(0.08, 0.25, { type: 'bandpass', f0: rnd(500, 1100), f1: 200, q: 3 });
+}

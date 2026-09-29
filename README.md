@@ -37,4 +37,5 @@ Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools
 - `js/food.js`: the snack tray and drag-to-mouth feeding
 - `js/bees.js`: the bee swarm, stings, and swatting
 - `js/emotions.js`: cry, sneeze, wink, love, sick, scream, hiccups, and rage sweat
+- `js/vomit.js`: 3D vomit blobs that pour from the mouth and puddle on the floor
 - `js/main.js`: scene, tools, actions, rage-o-meter, command wheel, UI

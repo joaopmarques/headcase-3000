@@ -8,6 +8,7 @@ import { ClipRecorder } from './recorder.js';
 import { setupFood } from './food.js';
 import { Bees } from './bees.js';
 import { Emotions } from './emotions.js';
+import { Vomit } from './vomit.js';
 import * as sfx from './audio.js';
 import { voiceState, loadVoices, speak, stopSpeaking, isTalking } from './voice.js';
 import { line, LIES, nonsense, pick } from './lines.js';
@@ -66,6 +67,8 @@ scene.add(shadow);
 const rig = new THREE.Group();
 scene.add(rig);
 const fx = new FX(scene);
+const vomit = new Vomit(scene);
+vomit.onSplat = () => sfx.puddleSplat();
 
 let head = null, props = null, painter = null;
 const mimic = new Mimic();
@@ -223,7 +226,7 @@ function stamp(emoji, x, y, cls = '') {
 
 // ---------- bees + feelings ----------
 const app = {
-  head: () => head, props: () => props, painter: () => painter,
+  head: () => head, props: () => props, painter: () => painter, vomit: () => vomit,
   rig, camera, stage, fx, sfx, st, line,
   grunt: (k) => grunt(k), react: (k, o) => react(k, o), addRage: (n) => addRage(n),
   showBubble: (t, ms) => showBubble(t, ms), talk: (t, o) => talk(t, o),
@@ -298,6 +301,7 @@ function installHead(canvas, fit) {
   painter = new Painter(head);
   bees.stop(true);
   emotions.stop();
+  vomit.clear();
   st.projectiles.forEach((p) => p.sp.removeFromParent());
   st.projectiles = [];
   st.chew = 0; st.fire = 0; st.sour = 0;
@@ -860,6 +864,7 @@ function resetAll() {
   if (painter) painter.drips = [];
   bees.stop(true);
   emotions.stop();
+  vomit.clear();
   $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
   head.look.set(0, 0);
   sfx.ding();
@@ -973,7 +978,10 @@ function eat(food) {
     chew(0.6, () => {
       sfx.spit();
       grunt('hmph');
-      fx.burst(mouthWorld(), ['🥦', '🟢', '🟢'], 6, { speed: 6, gravity: -10, size: 0.3, dir: new THREE.Vector3(0, 0.3, 1) });
+      // A 3D spray of chewed broccoli, plus one intact floret for the drama.
+      const dir = new THREE.Vector3(0, 0.25, 1).applyQuaternion(rig.quaternion);
+      vomit.spit(mouthWorld(), dir, 16);
+      fx.burst(mouthWorld(), ['🥦'], 1, { speed: 6, gravity: -10, size: 0.35, dir });
       react('broccoli', { force: true });
     });
     return;
@@ -1353,6 +1361,7 @@ function frame() {
     painter.update(dt);
     updateProjectiles(dt);
     bees.update(dt, t);
+    vomit.update(dt);
     head.update(dt);
     props.update(dt, t);
 

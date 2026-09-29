@@ -50,6 +50,9 @@ export class Emotions {
       case 'sick':
         app.grunt('bleh');
         app.react('sick', { force: true });
+        A.gags = 0;
+        A.puked = false;
+        A.fatBefore = head.s.fatTarget; // gags puff the cheeks; give them back after
         break;
       case 'scream':
         app.sfx.scream();
@@ -69,6 +72,11 @@ export class Emotions {
     if (A?.kind === 'sneeze' && !A.blown && head) {
       head.s.nose.t -= 0.25;
       head.forceBlink = 0;
+    }
+    // Sick cut short: open the eyes and give the cheeks back.
+    if (A?.kind === 'sick' && !A.dripped && head) {
+      head.forceBlink = 0;
+      head.s.fatTarget = A.fatBefore ?? head.s.fatTarget;
     }
     this.active = null;
   }
@@ -155,15 +163,62 @@ export class Emotions {
           app.fx.burst(p, ['❤️', '💕'], 1, { speed: 1.2, gravity: 1.5, size: 0.28, life: 1.4, dir: new THREE.Vector3(0, 1, 0) });
         }
         break;
-      case 'sick':
-        o.tint.setRGB(-0.05, 0.09, -0.03);
-        o.rotZ = Math.sin(t * 2.6) * 0.14;
-        o.rotX = Math.sin(t * 1.7) * 0.06;
-        o.jaw = 0.05;
+      case 'sick': {
+        // 0-2s: wobble and gag. 2-3.4s: the big one. After: sway it off.
+        const PUKE_START = 2, PUKE_END = 3.4;
+        const green = Math.min(1, A.t / PUKE_START);
+        o.tint.setRGB(-0.05 * green, 0.1 * green, -0.03 * green);
         o.brow = -0.3;
-        o.look = new THREE.Vector2(Math.cos(t * 2.2), Math.sin(t * 2.2)).multiplyScalar(0.8);
-        if (Math.floor(A.t / 1.4) !== Math.floor((A.t - dt) / 1.4)) app.grunt('bleh');
+        if (A.t < PUKE_START) {
+          o.rotZ = Math.sin(t * 2.6) * 0.14;
+          o.rotX = Math.sin(t * 1.7) * 0.06;
+          o.jaw = 0.05;
+          o.look = new THREE.Vector2(Math.cos(t * 2.2), Math.sin(t * 2.2)).multiplyScalar(0.8);
+          // Two gags on the way up: cheeks puff, jaw twitches.
+          for (const [k, at] of [[1, 0.8], [2, 1.5]]) {
+            if (A.gags < k && A.t >= at) {
+              A.gags = k;
+              app.sfx.gag();
+              head.s.jaw.kick(9);
+              head.s.fatTarget = Math.max(head.s.fatTarget, 0.35);
+              head.s.scaleY.x = 0.94;
+            }
+          }
+        } else if (A.t < PUKE_END) {
+          if (!A.puked) {
+            A.puked = true;
+            app.sfx.vomitSound(PUKE_END - PUKE_START);
+            app.st.rot.x.kick(4);
+          }
+          head.s.fatTarget = 0.3;
+          o.jaw = 0.85 + Math.sin(t * 40) * 0.04;
+          o.rotX = 0.12;
+          o.rotZ = Math.sin(t * 9) * 0.03;
+          o.look = new THREE.Vector2(0, -0.8);
+          head.forceBlink = 0.55;
+          // Pour from the mouth, along the face normal and a bit down.
+          const origin = this.eyeWorld('mouth');
+          const n = head.vertexNormal(head.anchors.mouth, new THREE.Vector3())
+            .applyQuaternion(head.mesh.getWorldQuaternion(new THREE.Quaternion()));
+          origin.addScaledVector(n, 0.06);
+          // Mostly outward, toward the viewer, so the arc is visible before it hits the floor.
+          const dir = n.add(new THREE.Vector3(0, 0.15, 0.35));
+          const u = (A.t - PUKE_START) / (PUKE_END - PUKE_START);
+          app.vomit().stream(origin, dir, dt, 260 * Math.sin(Math.PI * Math.min(1, u * 1.15)) + 40);
+        } else {
+          if (!A.dripped) {
+            A.dripped = true;
+            head.forceBlink = 0;
+            head.s.fatTarget = A.fatBefore ?? 0;
+            const uv1 = new THREE.Vector2().fromBufferAttribute(head.geo.attributes.uv1, head.anchors.lowerLip);
+            app.painter().splat(uv1, 'vomit', 0.45);
+            app.grunt('bleh');
+          }
+          o.rotZ = Math.sin(t * 2.6) * 0.08;
+          o.jaw = 0.08;
+        }
         break;
+      }
       case 'scream':
         o.jaw = 0.85;
         o.brow = 1;
