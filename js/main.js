@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import { Head } from './head.js';
 import { Props } from './props.js';
-import { FX } from './fx.js';
+import { FX, emojiTex } from './fx.js';
+import { Painter, AMMO, AMMO_ORDER, SHARPIE_COLORS } from './paint.js';
+import { Mimic } from './mimic.js';
+import { ClipRecorder } from './recorder.js';
+import { setupFood } from './food.js';
 import * as sfx from './audio.js';
 import { voiceState, loadVoices, speak, stopSpeaking, isTalking } from './voice.js';
 import { line, LIES, nonsense, pick } from './lines.js';
@@ -61,7 +65,8 @@ const rig = new THREE.Group();
 scene.add(rig);
 const fx = new FX(scene);
 
-let head = null, props = null;
+let head = null, props = null, painter = null;
+const mimic = new Mimic();
 const st = {
   tool: 'poke',
   rage: 0,
@@ -87,6 +92,18 @@ const st = {
   lastGiggle: 0,
   lastTickleLine: 0,
   slapCooldown: 0,
+  ammo: 'pie',
+  pen: 0,
+  projectiles: [],
+  lastMarker: 0,
+  strokes: 0,
+  lastSharpieLine: 0,
+  mouthOpen: false,
+  chew: 0,
+  chewThen: null,
+  lastChomp: 0,
+  fire: 0,
+  sour: 0,
 };
 
 function resize() {
@@ -227,6 +244,10 @@ function installHead(canvas, fit) {
   head = new Head(fit, canvas);
   rig.add(head.group);
   props = new Props(head);
+  painter = new Painter(head);
+  st.projectiles.forEach((p) => p.sp.removeFromParent());
+  st.projectiles = [];
+  st.chew = 0; st.fire = 0; st.sour = 0;
   st.rage = 0; st.meltdown = false; st.popped = false; st.fried = false; st.yeet = null;
   st.scale.x = 0.01; st.scale.v = 0; st.scale.t = 1;
   $$('[data-prop], [data-toggle]').forEach((b) => b.classList.remove('on'));
@@ -276,7 +297,7 @@ function hitTest(e) {
     const d = head.vertexPos(i, v).distanceToSquared(local);
     if (d < bd) { bd = d; best = i; }
   }
-  return { point: hit.point, local, vi: best };
+  return { point: hit.point, local, vi: best, uv1: hit.uv1 };
 }
 
 function doPoke(hit, e) {
@@ -355,6 +376,104 @@ function doTickle(hit) {
   }
 }
 
+// ---------- throwables ----------
+const AMMO_FX = {
+  pie: ['🥧', '💦', '✨'],
+  tomato: ['🍅', '💦', '🩸'],
+  egg: ['🥚', '🍳', '💦'],
+  water: ['💦', '💧', '💧'],
+};
+function pointOnStagePlane(e) {
+  setNdc(e);
+  raycaster.setFromCamera(ndc, camera);
+  const p = new THREE.Vector3();
+  raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.5), p);
+  return p;
+}
+function throwAt(e) {
+  const hit = hitTest(e);
+  const target = hit ? hit.point.clone() : pointOnStagePlane(e);
+  const kind = st.ammo;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(AMMO[kind].emoji), depthWrite: false }));
+  sp.scale.setScalar(0.6);
+  scene.add(sp);
+  const from = new THREE.Vector3(target.x * 0.4 + rnd(-0.8, 0.8), -2.6, camera.position.z - 1.2);
+  st.projectiles.push({ sp, from, to: target, t: 0, dur: 0.38, hit, kind, spin: rnd(-14, 14) });
+  sfx.throwWhoosh();
+}
+function landProjectile(p) {
+  const { hit, kind } = p;
+  if (hit && head && !st.popped) {
+    painter.splat(hit.uv1, kind);
+    head.poke(hit.vi, 0.32, 0.42);
+    st.rot.y.kick(hit.local.x * 3);
+    st.rot.x.kick(-hit.local.y * 2);
+    head.s.jaw.kick(8);
+    head.s.brow.kick(-6);
+    head.forceBlink = 0.8;
+    setTimeout(() => head && (head.forceBlink = 0), 500);
+    sfx.splat();
+    grunt(kind === 'water' ? 'yelp' : 'oof');
+    fx.burst(p.to, AMMO_FX[kind], 10, { speed: 3.5, size: 0.28, life: 0.9 });
+    addRage(kind === 'water' ? 4 : 8);
+    react('splat');
+    p.sp.removeFromParent();
+    return true;
+  }
+  // Missed: keep flying and fall off-screen.
+  p.missed = true;
+  p.v = p.to.clone().sub(p.from).divideScalar(p.dur);
+  if (Math.random() < 0.5) react('miss');
+  return false;
+}
+function updateProjectiles(dt) {
+  for (const p of st.projectiles) {
+    p.t += dt;
+    p.sp.material.rotation += p.spin * dt;
+    if (p.missed) {
+      p.v.y -= 12 * dt;
+      p.sp.position.addScaledVector(p.v, dt);
+      p.done = p.t > p.dur + 1.2;
+      if (p.done) p.sp.removeFromParent();
+      continue;
+    }
+    const u = Math.min(1, p.t / p.dur);
+    p.sp.position.lerpVectors(p.from, p.to, u);
+    p.sp.position.y += Math.sin(u * Math.PI) * 1.4;
+    p.sp.scale.setScalar(0.6 + (1 - u) * 0.9);
+    if (u >= 1) p.done = landProjectile(p);
+  }
+  st.projectiles = st.projectiles.filter((p) => !p.done);
+}
+function cycleAmmo() {
+  st.ammo = AMMO_ORDER[(AMMO_ORDER.indexOf(st.ammo) + 1) % AMMO_ORDER.length];
+  $('#ammoIcon').textContent = AMMO[st.ammo].emoji;
+  $('#ammoName').textContent = `${AMMO[st.ammo].name} · click again to swap`;
+  setCursor(AMMO[st.ammo].emoji);
+  sfx.squeak(1.2);
+}
+
+// ---------- sharpie ----------
+function penColor() { return SHARPIE_COLORS[st.pen]; }
+function cyclePen() {
+  st.pen = (st.pen + 1) % SHARPIE_COLORS.length;
+  $('#penDot').style.background = penColor();
+  sfx.marker();
+}
+function sharpieAt(hit) {
+  painter.stroke(hit.uv1, penColor());
+  const t = now();
+  if (t - st.lastMarker > 70) { st.lastMarker = t; sfx.marker(); }
+  st.strokes++;
+  st.lastInteraction = t;
+  if (st.strokes > 25 && t - st.lastSharpieLine > 5000) {
+    st.lastSharpieLine = t;
+    st.strokes = 0;
+    grunt('hmph');
+    react('sharpie', { force: true });
+  }
+}
+
 canvas.addEventListener('pointerdown', (e) => {
   sfx.unlock();
   if (!head) return;
@@ -365,6 +484,8 @@ canvas.addEventListener('pointerdown', (e) => {
     case 'poke': if (hit) doPoke(hit, e); break;
     case 'bonk': if (hit) doBonk(hit, e); break;
     case 'tickle': if (hit) doTickle(hit); break;
+    case 'throw': throwAt(e); break;
+    case 'sharpie': if (hit) sharpieAt(hit); break;
     case 'pinch':
       if (hit) {
         head.grab(hit.vi);
@@ -423,12 +544,17 @@ canvas.addEventListener('pointermove', (e) => {
   } else if (st.tool === 'tickle') {
     const hit = hitTest(e);
     if (hit) doTickle(hit);
+  } else if (st.tool === 'sharpie') {
+    const hit = hitTest(e);
+    if (hit) sharpieAt(hit);
+    else painter?.penUp();
   }
 });
 
 function endPointer(e) {
   const p = st.pointer;
   st.pointer = null;
+  painter?.penUp();
   if (!head || !p) return;
   if (st.tool === 'pinch' && st.pinch) {
     head.release();
@@ -454,22 +580,32 @@ canvas.addEventListener('pointerleave', (e) => {
 });
 
 // ---------- tool picker ----------
-const CURSORS = { poke: '👉', pinch: '🤏', slap: '🖐️', bonk: '🔨', tickle: '🪶' };
+const CURSORS = { poke: '👉', pinch: '🤏', slap: '🖐️', bonk: '🔨', tickle: '🪶', throw: '🥧', sharpie: '🖍️' };
+function setCursor(emoji) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><text x='4' y='38' font-size='36'>${emoji}</text></svg>`;
+  canvas.style.cursor = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 12 12, pointer`;
+}
 function setTool(tool) {
   st.tool = tool;
   $$('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === tool));
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><text x='4' y='38' font-size='36'>${CURSORS[tool]}</text></svg>`;
-  canvas.style.cursor = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 12 12, pointer`;
+  setCursor(tool === 'throw' ? AMMO[st.ammo].emoji : CURSORS[tool]);
   $('#hint').textContent = {
     poke: 'CLICK the head. Poke it. You know you want to.',
     pinch: 'GRAB and DRAG to stretch that face like taffy.',
     slap: 'SWIPE fast across the face. Or click a cheek.',
     bonk: 'CLICK to bonk. Birds included.',
     tickle: 'HOLD and WIGGLE over the face.',
+    throw: 'CLICK to throw. Click the THROW button again for new ammo.',
+    sharpie: 'DRAW on the face. Click SHARPIE again to change color.',
   }[tool];
   sfx.squeak(1.5);
 }
-$$('[data-tool]').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
+$$('[data-tool]').forEach((b) => b.addEventListener('click', () => {
+  const tool = b.dataset.tool;
+  if (st.tool === tool && tool === 'throw') cycleAmmo();
+  else if (st.tool === tool && tool === 'sharpie') cyclePen();
+  else setTool(tool);
+}));
 setTool('poke');
 
 // ---------- actions ----------
@@ -610,10 +746,179 @@ function resetAll() {
   if (st.fried) deepFry();
   fx.clearOrbits();
   st.rage = 0; st.meltdown = false;
-  $$('[data-prop], [data-action]').forEach((b) => b.classList.remove('on'));
+  st.chew = 0; st.fire = 0; st.sour = 0;
+  if (painter) painter.drips = [];
+  $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
   sfx.ding();
   showBubble('Good as new. Mostly.');
 }
+
+// ---------- mic mimic ----------
+function setMimicButton(on) {
+  const b = $('[data-action="mimic"]');
+  b.classList.toggle('on', on);
+  b.querySelector('b').textContent = on ? '🔴' : '🎤';
+  b.querySelector('small').textContent = on ? 'click to stop' : 'click, talk, click';
+}
+async function toggleMimic() {
+  if (mimic.state === 'playing') return;
+  if (mimic.state === 'recording') {
+    setMimicButton(false);
+    sfx.micOff();
+    st.rot.z.t = 0;
+    const buf = await mimic.stop();
+    if (!buf || buf.duration < 0.3) {
+      st.userSpeaking = false;
+      showBubble('I did not hear anything. Try again, louder.');
+      return;
+    }
+    stopSpeaking();
+    // Pitch slider picks the silliness: normal is chipmunk-ish, demon preset is slow and low.
+    const p = voiceState.pitch;
+    const rate = p <= 1 ? 0.55 + p * 0.9 : 1.45 + (p - 1) * 0.5;
+    showBubble('🦜🦜🦜', buf.duration / rate * 1000 + 300);
+    await mimic.play(rate);
+    st.userSpeaking = false;
+    st.lastInteraction = now();
+    return;
+  }
+  try {
+    await mimic.start();
+  } catch (e) {
+    console.warn(e);
+    showBubble('I need your microphone to copy you. Allow it and try again.', 3500);
+    return;
+  }
+  st.userSpeaking = true;
+  stopSpeaking();
+  setMimicButton(true);
+  sfx.micOn();
+  showBubble(line('listen'), 10000);
+  st.rot.z.t = 0.14; // tilt the head, like a curious dog
+}
+
+// ---------- clip recording ----------
+const recorder = new ClipRecorder(stage, canvas, bubble);
+let clipUrl = null;
+function toggleRec() {
+  const btn = $('[data-action="rec"]');
+  if (!ClipRecorder.supported()) { showBubble('This browser can not record clips. Try Chrome or Safari.'); return; }
+  if (recorder.active) { recorder.stop(); return; }
+  sfx.recBeep();
+  btn.classList.add('on');
+  const badge = $('#recBadge');
+  badge.classList.remove('hidden');
+  recorder.start(6, {
+    onTick: (sec) => { badge.textContent = `● REC ${sec}s`; },
+    onDone: (blob, ext) => {
+      badge.classList.add('hidden');
+      btn.classList.remove('on');
+      sfx.ding();
+      showClip(blob, ext);
+    },
+  });
+}
+function showClip(blob, ext) {
+  if (clipUrl) URL.revokeObjectURL(clipUrl);
+  clipUrl = URL.createObjectURL(blob);
+  const name = `headcase-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.${ext}`;
+  $('#clipVideo').src = clipUrl;
+  $('#clipSave').href = clipUrl;
+  $('#clipSave').download = name;
+  const file = new File([blob], name, { type: blob.type });
+  const share = $('#clipShare');
+  const canShare = !!navigator.canShare?.({ files: [file] });
+  share.classList.toggle('hidden', !canShare);
+  share.onclick = () => navigator.share({ files: [file], title: 'HEADCASE 3000' }).catch(() => {});
+  $('#clip').classList.remove('hidden');
+  $('#clipVideo').play().catch(() => {});
+}
+$('#clipClose').addEventListener('click', () => {
+  $('#clip').classList.add('hidden');
+  $('#clipVideo').pause();
+});
+
+// ---------- snacks ----------
+function mouthWorld() {
+  return props.anchorWorld('mouth', new THREE.Vector3());
+}
+function chew(seconds, then) {
+  st.chew = seconds;
+  st.chewThen = then;
+}
+function eat(food) {
+  if (!head || st.popped) return;
+  st.lastInteraction = now();
+  const s = head.s;
+  if (food.fat > 0.05 && s.fatTarget >= 0.99) {
+    sfx.spit();
+    grunt('hmph');
+    fx.burst(mouthWorld(), [food.emoji], 1, { speed: 6, gravity: -10, size: 0.5, dir: new THREE.Vector3(rnd(-0.5, 0.5), 0.6, 1) });
+    react('full', { force: true });
+    return;
+  }
+  sfx.gulp();
+  if (food.id === 'broccoli') {
+    chew(0.6, () => {
+      sfx.spit();
+      grunt('hmph');
+      fx.burst(mouthWorld(), ['🥦', '🟢', '🟢'], 6, { speed: 6, gravity: -10, size: 0.3, dir: new THREE.Vector3(0, 0.3, 1) });
+      react('broccoli', { force: true });
+    });
+    return;
+  }
+  if (food.id === 'chili') {
+    chew(0.7, () => {
+      st.fire = 2.2;
+      sfx.fireBreath(2);
+      grunt('argh');
+      react('chili', { force: true });
+    });
+    return;
+  }
+  if (food.id === 'lemon') {
+    chew(0.4, () => {
+      st.sour = 1.4;
+      head.s.scaleY.x = 0.78;
+      head.s.scaleY.v = 0;
+      head.s.twist.kick(6);
+      sfx.squeak(0.5);
+      grunt('hmph');
+      react('lemon', { force: true });
+    });
+    return;
+  }
+  chew(1.1, () => {
+    sfx.gulp();
+    s.fatTarget = Math.min(1, s.fatTarget + food.fat);
+    st.rage = Math.max(0, st.rage - 12); // snacks calm the beast
+    if (food.id === 'donut') sfx.sparkle();
+    if (s.fatTarget >= 0.99) react('full', { force: true });
+    else react('yum', { force: true });
+    if (Math.random() < 0.5) setTimeout(() => { sfx.burp(); showBubble('*BURP*', 1200); }, 900);
+  });
+}
+setupFood($('#foodTray'), stage, {
+  mouth() {
+    if (!head || st.popped || !head.group.visible) return null;
+    const p = mouthWorld().project(camera);
+    return { x: (p.x * 0.5 + 0.5) * stage.clientWidth, y: (-p.y * 0.5 + 0.5) * stage.clientHeight };
+  },
+  onNear(near) {
+    st.mouthOpen = near;
+    if (near && head) { grunt('ooh'); react('foodNear'); }
+  },
+  onEat: eat,
+  onMiss(food, x, y) {
+    if (!head) return;
+    const hit = hitTest({ clientX: x, clientY: y });
+    if (hit) {
+      head.poke(hit.vi, 0.15);
+      sfx.boing(1.4);
+      react('forehead', { force: true });
+    } else sfx.thud();
+  },
+});
 
 const ACTIONS = {
   melt() {
@@ -668,6 +973,8 @@ const ACTIONS = {
     react('spin', { force: true });
   },
   fry: deepFry,
+  mimic: toggleMimic,
+  rec: toggleRec,
   reset: resetAll,
   newface() { $('#intro').classList.remove('hidden'); },
 };
@@ -841,6 +1148,29 @@ function frame() {
     }
     if (head.s.tickle > 0.2) jawT = Math.max(jawT, 0.2 + 0.2 * Math.abs(Math.sin(t * 22)));
     if (st.meltdown) jawT = 0.6 + 0.1 * Math.sin(t * 30);
+    // Mimic: the mouth follows the real audio level.
+    const lvl = mimic.update();
+    if (mimic.state === 'playing') jawT = Math.min(0.75, lvl * 0.9);
+    if (mimic.state === 'recording') { st.pos.y.t = lvl * 0.15; head.s.brow.kick(lvl * 2); } else st.pos.y.t = 0;
+    // Snacks: gape at incoming food, chew, breathe fire.
+    if (st.mouthOpen) jawT = Math.max(jawT, 0.55 + 0.05 * Math.sin(t * 12));
+    if (st.chew > 0) {
+      st.chew -= dt;
+      jawT = 0.05 + 0.22 * Math.abs(Math.sin(t * 13));
+      if (tNow - st.lastChomp > 200) { st.lastChomp = tNow; sfx.chomp(); }
+      if (st.chew <= 0) { const f = st.chewThen; st.chewThen = null; f?.(); }
+    }
+    if (st.fire > 0) {
+      st.fire -= dt;
+      jawT = 0.6;
+      const dir = new THREE.Vector3(0, -0.1, 1).applyQuaternion(rig.quaternion);
+      fx.burst(mouthWorld(), ['🔥', '🔥', '💨'], 2, { speed: 5, gravity: 2, life: 0.5, size: 0.4, dir });
+    }
+    if (st.sour > 0) {
+      st.sour -= dt;
+      head.forceBlink = st.sour > 0 ? 0.85 : 0;
+      jawT = 0;
+    }
     head.s.jaw.t = jawT;
     head.s.brow.t = st.meltdown ? -1 : head.s.inflate.t * 0.6 + (isTalking() ? 0.15 * Math.sin(t * 5) : 0);
 
@@ -865,7 +1195,8 @@ function frame() {
     st.rage = Math.max(0, st.rage - dt * (st.meltdown ? 0 : 2.5));
     st.blush = Math.max(0, st.blush - dt * 0.8);
     const r = st.rage / 100;
-    head.s.tint.setRGB(r * 0.22 + st.blush * 0.18, st.blush * 0.02, st.blush * 0.04);
+    const hot = Math.max(0, st.fire) * 0.12;
+    head.s.tint.setRGB(r * 0.22 + st.blush * 0.18 + hot, st.blush * 0.02, st.blush * 0.04);
     if (st.rage > 70 || st.meltdown) {
       const k = st.meltdown ? 0.06 : 0.015;
       st.rot.z.x += rnd(-k, k);
@@ -876,6 +1207,8 @@ function frame() {
     // Idle chatter
     if (st.talkBack && tNow - st.lastInteraction > 30000) react('idle', { force: true });
 
+    painter.update(dt);
+    updateProjectiles(dt);
     head.update(dt);
     props.update(dt, t);
 
@@ -930,9 +1263,10 @@ function frame() {
   }
   fx.update(dt);
   renderer.render(scene, camera);
+  if (recorder.active) recorder.draw();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
 // Debug handle for the curious (and for automated tests).
-window.headcase = { loadFace, get head() { return head; }, st, ACTIONS };
+window.headcase = { loadFace, get head() { return head; }, get props() { return props; }, st, ACTIONS, camera, stage, mimic, recorder };

@@ -1,5 +1,5 @@
 // Synthesized nonsense noises. No audio files, only Web Audio and bad decisions.
-let ctx, master, noiseBuf;
+let ctx, master, noiseBuf, voiceBus, outBus, tap;
 let muted = false;
 
 function ac() {
@@ -7,8 +7,13 @@ function ac() {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 0.55;
-    const comp = ctx.createDynamicsCompressor();
-    master.connect(comp).connect(ctx.destination);
+    // The mimic voice skips the sfx mute and the compressor (it pumps on speech).
+    voiceBus = ctx.createGain();
+    voiceBus.gain.value = 1;
+    outBus = ctx.createDynamicsCompressor();
+    master.connect(outBus);
+    outBus.connect(ctx.destination);
+    voiceBus.connect(ctx.destination);
   }
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
@@ -240,6 +245,18 @@ export function stopDisco() {
   discoTimer = null;
 }
 export const unlock = () => ac();
+export const audioCtx = () => ac();
+export const voiceOut = () => (ac(), voiceBus);
+// A stream of everything the app plays, for clip recording.
+export function tapStream() {
+  const c = ac();
+  if (!tap) {
+    tap = c.createMediaStreamDestination();
+    outBus.connect(tap);
+    voiceBus.connect(tap);
+  }
+  return tap.stream;
+}
 
 // ---------- cartoon vocal grunts ----------
 // A tiny formant synth: a buzzy source through two vowel filters. Instant, unlike TTS.
@@ -362,3 +379,46 @@ export function thud() {
   tone('sine', [120, 45], 0.25, 0.8);
   burst(0.06, 0.3, { type: 'lowpass', f0: 800 });
 }
+
+export function splat() {
+  burst(0.22, 0.8, { type: 'lowpass', f0: 1800, f1: 250, q: 3 });
+  tone('sine', [180, 60], 0.18, 0.5);
+  for (let i = 0; i < 3; i++) burst(0.05, 0.25, { type: 'bandpass', f0: rnd(900, 2200), q: 6, when: 0.08 + i * 0.06 });
+}
+
+export function throwWhoosh() {
+  burst(0.3, 0.3, { type: 'bandpass', f0: 600, f1: 2400, q: 2 });
+}
+
+export function marker() {
+  burst(0.06, 0.12, { type: 'bandpass', f0: rnd(2500, 4200), q: 12 });
+}
+
+export function chomp() {
+  burst(0.07, 0.6, { type: 'bandpass', f0: rnd(1200, 2400), q: 1.5 });
+  tone('square', [rnd(160, 220), 90], 0.06, 0.12);
+}
+
+export function burp() {
+  vocal([{ v: 'u', to: 'o', f: [95, 70], d: 0.55 }], { pitch: 1, gravel: 0.9, vol: 0.6 });
+}
+
+export function gulp() {
+  tone('sine', [300, 120], 0.12, 0.4);
+  tone('sine', [160, 90], 0.1, 0.3, { when: 0.1 });
+}
+
+export function spit() {
+  burst(0.12, 0.5, { type: 'highpass', f0: 1500 });
+  tone('square', [500, 200], 0.05, 0.15);
+}
+
+export function fireBreath(dur = 1.2) {
+  burst(dur, 0.6, { type: 'lowpass', f0: 500, f1: 2500, q: 1 });
+  burst(dur, 0.25, { type: 'highpass', f0: 5000 });
+}
+
+export function micOn() { tone('sine', [880, 1320], 0.12, 0.2); }
+export function micOff() { tone('sine', [1320, 660], 0.12, 0.2); }
+
+export function recBeep() { tone('square', [1000, 1000], 0.08, 0.15); }

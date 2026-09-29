@@ -2,7 +2,7 @@
 
 Upload your face. Ruin your face. Repeat.
 
-A browser toy that turns a photo into a 3D head that you can poke, pinch, slap, bonk, tickle, inflate, melt, and make talk.
+A browser toy that turns a photo into a 3D head that you can poke, pinch, slap, bonk, tickle, inflate, melt, pie, doodle on, feed, and make talk. It can also copy your voice and record clips.
 
 ## Run it
 
@@ -29,4 +29,8 @@ Open http://localhost:5173. There is no build step and no install. Three.js, Med
 - `js/audio.js`: every sound, synthesized with Web Audio
 - `js/voice.js`: text to speech
 - `js/lines.js`: dialogue, lies, and the nonsense generator
+- `js/paint.js`: food splats, drips, and sharpie strokes on a paint layer that wraps the head
+- `js/mimic.js`: records the mic and plays it back in a silly voice with lip-sync
+- `js/recorder.js`: records 6-second clips of the stage with sound
+- `js/food.js`: the snack tray and drag-to-mouth feeding
 - `js/main.js`: scene, tools, actions, rage-o-meter, UI

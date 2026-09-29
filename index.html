@@ -65,6 +65,8 @@
       <button data-tool="slap"><b>🖐️</b>SLAP</button>
       <button data-tool="bonk"><b>🔨</b>BONK</button>
       <button data-tool="tickle"><b>🪶</b>TICKLE</button>
+      <button data-tool="throw"><b id="ammoIcon">🥧</b>THROW <small id="ammoName">PIE · click again to swap</small></button>
+      <button data-tool="sharpie"><b>🖍️</b>SHARPIE <small><i id="penDot" class="pen-dot"></i> click again for color</small></button>
     </aside>
 
     <section id="stage">
@@ -76,6 +78,7 @@
         <span id="rageFace">😊</span>
       </div>
       <div id="hint"></div>
+      <div id="recBadge" class="hidden">● REC</div>
       <div class="sticker s1">100% REAL 3D*</div>
       <div class="sticker s2">*kinda</div>
     </section>
@@ -94,7 +97,12 @@
         <button data-action="disco"><b>🪩</b>DISCO</button>
         <button data-action="clones"><b>👯</b>CLONES</button>
         <button data-action="fry"><b>🍟</b>DEEP FRY</button>
+        <button data-action="mimic"><b>🎤</b>MIMIC ME<small>click, talk, click</small></button>
+        <button data-action="rec"><b>🎬</b>REC CLIP<small>6 seconds</small></button>
       </div>
+      <h2>SNACKS</h2>
+      <div id="foodTray" class="tray" title="Drag food into the mouth"></div>
+      <p class="tray-hint">drag it into the mouth ↑</p>
       <h2>DRIP</h2>
       <div class="grid">
         <button data-prop="googly"><b>👀</b>GOOGLY</button>
@@ -166,6 +174,19 @@
         <button id="camSnap">📸 SNAP!</button>
         <button id="camCancel">nah</button>
       </div>
+    </div>
+  </div>
+
+  <div id="clip" class="overlay hidden">
+    <div class="card clip">
+      <button id="clipClose" class="x" aria-label="Close">✖</button>
+      <h2>YOUR<br />MASTERPIECE</h2>
+      <video id="clipVideo" controls loop playsinline></video>
+      <div class="row">
+        <a id="clipSave" class="btn" download>💾 SAVE CLIP</a>
+        <button id="clipShare" class="hidden">📤 SHARE</button>
+      </div>
+      <p class="fine">Text-to-speech voices are not in the clip (browsers keep them private). Sounds and MIMIC ME are.</p>
     </div>
   </div>
 

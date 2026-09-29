@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 
 const texCache = new Map();
-function emojiTex(e) {
+export function emojiTex(e) {
   if (texCache.has(e)) return texCache.get(e);
   const c = document.createElement('canvas');
   c.width = c.height = 128;
@@ -26,16 +26,20 @@ export class FX {
     this.orbits = [];
   }
 
-  burst(pos, emojis, count = 20, { speed = 4, gravity = -6, life = 1.6, size = 0.35, spread = 1 } = {}) {
+  burst(pos, emojis, count = 20, { speed = 4, gravity = -6, life = 1.6, size = 0.35, spread = 1, dir = null } = {}) {
     for (let i = 0; i < count; i++) {
       const e = emojis[Math.floor(Math.random() * emojis.length)];
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(e), transparent: true, depthWrite: false }));
       sp.position.copy(pos);
       const s = size * rnd(0.6, 1.4);
       sp.scale.setScalar(s);
-      const dir = new THREE.Vector3(rnd(-1, 1), rnd(-0.2, 1.2), rnd(-0.3, 1)).normalize();
+      const rand = new THREE.Vector3(rnd(-1, 1), rnd(-0.2, 1.2), rnd(-0.3, 1)).normalize();
+      // With a direction, particles fly that way with a bit of scatter (fire breath, spit).
+      const v = dir
+        ? dir.clone().normalize().multiplyScalar(speed * rnd(0.7, 1.2)).addScaledVector(rand, speed * 0.25 * spread)
+        : rand.multiplyScalar(speed * rnd(0.5, 1.2) * spread);
       this.parts.push({
-        sp, v: dir.multiplyScalar(speed * rnd(0.5, 1.2) * spread), g: gravity,
+        sp, v, g: gravity,
         life: life * rnd(0.7, 1.2), age: 0, s, spin: rnd(-8, 8),
       });
       this.scene.add(sp);

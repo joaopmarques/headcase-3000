@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { A, B, C, Spring, clamp01, smooth } from './shape.js';
 
+// Paint layer size. It wraps the whole head (equirectangular), so doodles work on the back too.
+export const PAINT_W = 2048, PAINT_H = 1024;
+
 const toLinear = (rgb) => new THREE.Color().setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, THREE.SRGBColorSpace);
 
 export class Head {
@@ -13,6 +16,22 @@ export class Head {
     this.texCanvas.width = canvas.width;
     this.texCanvas.height = canvas.height;
     this.texCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+    this.paintCanvas = document.createElement('canvas');
+    this.paintCanvas.width = PAINT_W;
+    this.paintCanvas.height = PAINT_H;
+    this.paintCtx = this.paintCanvas.getContext('2d');
+    // Wet layer (water balloons) fades out. The texture shows paint + wet combined.
+    this.wetCanvas = document.createElement('canvas');
+    this.wetCanvas.width = PAINT_W;
+    this.wetCanvas.height = PAINT_H;
+    this.wetCtx = this.wetCanvas.getContext('2d');
+    this.wetAlpha = 0;
+    this.dispCanvas = document.createElement('canvas');
+    this.dispCanvas.width = PAINT_W;
+    this.dispCanvas.height = PAINT_H;
+    this.dispCtx = this.dispCanvas.getContext('2d');
+    this.paintDirty = false;
 
     this.group = new THREE.Group();
     this.buildGeometry();
@@ -31,6 +50,7 @@ export class Head {
       twist: new Spring(0, 45, 2.5),
       tongue: new Spring(0, 160, 12),
       melt: 0, meltTarget: 0,
+      fat: 0, fatTarget: 0,
       tickle: 0,
       blink: 0,
       tint: new THREE.Color(0, 0, 0),
@@ -53,6 +73,7 @@ export class Head {
     this.n = n;
     const base = new Float32Array(n * 3);
     const uv = new Float32Array(n * 2);
+    const uv1 = new Float32Array(n * 2); // paint layer UVs
     const aMix = new Float32Array(n), aJaw = new Float32Array(n), aMouth = new Float32Array(n);
     const aFill = new Float32Array(n * 3);
     this.wJaw = aJaw;
@@ -72,6 +93,9 @@ export class Head {
       let Z = sz * C;
       if (sz > 0) Z = fit.surfaceZ(X, Y, Z, sz);
       base[i * 3] = X; base[i * 3 + 1] = Y; base[i * 3 + 2] = Z;
+
+      uv1[i * 2] = Math.atan2(sx, sz) / (Math.PI * 2) + 0.5;
+      uv1[i * 2 + 1] = 1 - Math.acos(Math.max(-1, Math.min(1, sy))) / Math.PI;
 
       const [px, py] = fit.toPx(X, Y);
       uv[i * 2] = px / W;
@@ -97,6 +121,7 @@ export class Head {
     this.base = base;
     pos.array.set(base);
     geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setAttribute('uv1', new THREE.BufferAttribute(uv1, 2));
     geo.setAttribute('aMix', new THREE.BufferAttribute(aMix, 1));
     geo.setAttribute('aFill', new THREE.BufferAttribute(aFill, 3));
     geo.setAttribute('aJaw', new THREE.BufferAttribute(aJaw, 1));
@@ -132,6 +157,9 @@ export class Head {
     this.tex = new THREE.CanvasTexture(this.texCanvas);
     this.tex.colorSpace = THREE.SRGBColorSpace;
     this.tex.anisotropy = 8;
+    this.paintTex = new THREE.CanvasTexture(this.dispCanvas);
+    this.paintTex.colorSpace = THREE.SRGBColorSpace;
+    this.paintTex.anisotropy = 4;
     const mat = new THREE.MeshStandardMaterial({ map: this.tex, roughness: 0.55, metalness: 0.0 });
     const F = fit.features;
     const eyeUv = (e) => new THREE.Vector4(e.x / fit.W, 1 - e.y / fit.H, e.rx / fit.W, e.ry / fit.H);
@@ -143,18 +171,23 @@ export class Head {
       uEyeL: { value: eyeUv(F.eyeL) },
       uEyeR: { value: eyeUv(F.eyeR) },
       uHue: { value: 0 },
+      uPaint: { value: this.paintTex },
     };
     mat.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, this.uniforms);
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', `#include <common>
           attribute float aMix; attribute vec3 aFill; attribute float aJaw; attribute float aMouth;
-          varying float vMix; varying vec3 vFill; varying float vJaw; varying float vMouth;`)
+          #ifndef USE_UV1
+            attribute vec2 uv1;
+          #endif
+          varying float vMix; varying vec3 vFill; varying float vJaw; varying float vMouth; varying vec2 vPaintUv;`)
         .replace('#include <uv_vertex>', `#include <uv_vertex>
-          vMix = aMix; vFill = aFill; vJaw = aJaw; vMouth = aMouth;`);
+          vMix = aMix; vFill = aFill; vJaw = aJaw; vMouth = aMouth; vPaintUv = uv1;`);
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
-          varying float vMix; varying vec3 vFill; varying float vJaw; varying float vMouth;
+          varying float vMix; varying vec3 vFill; varying float vJaw; varying float vMouth; varying vec2 vPaintUv;
+          uniform sampler2D uPaint;
           uniform float uJaw; uniform float uBlink; uniform vec3 uTint; uniform vec3 uSkin;
           uniform vec4 uEyeL; uniform vec4 uEyeR; uniform float uHue;
           float lidMask(vec2 uv, vec4 e) {
@@ -181,6 +214,8 @@ export class Head {
           float teeth = smoothstep(0.01, 0.06, vJaw) * (1.0 - smoothstep(0.12, 0.2, vJaw)) * step(0.06, uJaw);
           col = mix(col, vec3(0.1, 0.005, 0.015), open);
           col = mix(col, vec3(0.9, 0.88, 0.8), teeth * open);
+          vec4 paint = texture2D(uPaint, vPaintUv);
+          col = mix(col, paint.rgb, paint.a);
           col = hueShift(col, uHue);
           col = col + uTint;
           diffuseColor.rgb *= col;
@@ -197,6 +232,31 @@ export class Head {
   grab(i) { this.pinch = { i, off: new THREE.Vector3(), held: true, t: 0, amp: 1 }; }
   drag(offLocal) { if (this.pinch) this.pinch.off.copy(offLocal).clampLength(0, 1.6); }
   release() { if (this.pinch) { this.pinch.held = false; this.pinch.t = 0; } }
+
+  // Paint-layer pixel for a paint UV, plus how much to stretch shapes sideways
+  // (the equirectangular map squashes things near the top and bottom).
+  paintPx(uv1) {
+    const px = uv1.x * PAINT_W, py = (1 - uv1.y) * PAINT_H;
+    const theta = (py / PAINT_H) * Math.PI;
+    return { x: px, y: py, sx: 1 / Math.max(0.2, Math.sin(theta)) };
+  }
+  clearPaint() {
+    this.paintCtx.clearRect(0, 0, PAINT_W, PAINT_H);
+    this.wetCtx.clearRect(0, 0, PAINT_W, PAINT_H);
+    this.wetAlpha = 0;
+    this.paintDirty = true;
+  }
+  composePaint() {
+    const g = this.dispCtx;
+    g.clearRect(0, 0, PAINT_W, PAINT_H);
+    g.drawImage(this.paintCanvas, 0, 0);
+    if (this.wetAlpha > 0) {
+      g.globalAlpha = Math.min(1, this.wetAlpha * 2);
+      g.drawImage(this.wetCanvas, 0, 0);
+      g.globalAlpha = 1;
+    }
+    this.paintTex.needsUpdate = true;
+  }
 
   vertexPos(i, out) {
     const a = this.geo.attributes.position.array;
@@ -227,6 +287,8 @@ export class Head {
     s.inflate.snap(0); s.jaw.snap(0); s.brow.snap(0); s.nose.snap(0);
     s.scaleY.snap(1); s.twist.snap(0); s.tongue.snap(0);
     s.melt = s.meltTarget = 0; s.tickle = 0;
+    s.fat = s.fatTarget = 0;
+    this.clearPaint();
     this.pokes.length = 0; this.pinch = null;
   }
 
@@ -237,6 +299,8 @@ export class Head {
     for (const k of ['inflate', 'jaw', 'brow', 'nose', 'scaleY', 'twist', 'tongue']) s[k].step(dt);
     s.melt += (s.meltTarget - s.melt) * Math.min(1, dt * 0.9);
     s.tickle = Math.max(0, s.tickle - dt * 1.5);
+    s.fat += (s.fatTarget - s.fat) * Math.min(1, dt * 3);
+    if (this.paintDirty) { this.composePaint(); this.paintDirty = false; }
 
     // Blinks, because a staring head is creepier than a squished one.
     this.nextBlink -= dt;
@@ -272,7 +336,7 @@ export class Head {
     }
 
     const inflate = s.inflate.x, jaw = Math.max(0, s.jaw.x), brow = s.brow.x, nose = s.nose.x;
-    const twist = s.twist.x, melt = s.melt, tickle = s.tickle;
+    const twist = s.twist.x, melt = s.melt, tickle = s.tickle, fat = s.fat;
     const sy = Math.max(0.15, s.scaleY.x), sxz = 1 / Math.sqrt(sy);
     const base = this.base, N = this.baseN;
     const out = this.geo.attributes.position.array;
@@ -286,6 +350,11 @@ export class Head {
       if (inflate !== 0) {
         const f = inflate * 0.6 * (0.8 + 0.7 * this.wCheek[i]) * (1 + 0.06 * Math.sin(t * 9 + by * 4));
         x += nx * f; y += ny * f; z += nz * f;
+      }
+      if (fat > 0.001) {
+        // Chipmunk cheeks and a double chin.
+        const f = fat * 0.32 * (0.2 + this.wCheek[i] * 1.1 + this.wJaw[i] * 0.7);
+        x += nx * f; y += ny * f - this.wJaw[i] * fat * 0.08; z += nz * f;
       }
       if (nose !== 0) {
         const w = this.wNose[i];
@@ -344,6 +413,7 @@ export class Head {
     this.geo.dispose();
     this.mat.dispose();
     this.tex.dispose();
+    this.paintTex.dispose();
     this.group.removeFromParent();
   }
 }
