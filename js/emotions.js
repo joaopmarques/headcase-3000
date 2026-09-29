@@ -55,8 +55,8 @@ export class Emotions {
         A.fatBefore = head.s.fatTarget; // puking empties this out
         break;
       case 'scream':
-        app.sfx.scream();
-        app.grunt('argh');
+        // The one and only Wilhelm scream (synth scream if the sample is not ready).
+        if (!app.samples?.play('wilhelm', { vol: 1 })) { app.sfx.scream(); app.grunt('argh'); }
         app.react('scream', { force: true });
         break;
       case 'hiccup':
@@ -188,7 +188,7 @@ export class Emotions {
           if (!A.puked) {
             A.puked = true;
             app.ach?.().unlock('technicolor');
-            app.sfx.vomitSound(PUKE_END - PUKE_START);
+            if (!app.samples?.play('barf', { vol: 1 })) app.sfx.vomitSound(PUKE_END - PUKE_START);
             app.st.rot.x.kick(4);
           }
           o.jaw = 0.85 + Math.sin(t * 40) * 0.04;

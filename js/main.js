@@ -10,6 +10,8 @@ import { Bees } from './bees.js';
 import { Emotions } from './emotions.js';
 import { Vomit } from './vomit.js';
 import { Achievements, ACHIEVEMENTS } from './achievements.js';
+import { Nuke } from './nuke.js';
+import * as samples from './samples.js';
 import * as sfx from './audio.js';
 import { voiceState, loadVoices, speak, stopSpeaking, isTalking } from './voice.js';
 import { line, nextLie, nonsense, pick } from './lines.js';
@@ -69,6 +71,9 @@ const rig = new THREE.Group();
 scene.add(rig);
 const fx = new FX(scene);
 const vomit = new Vomit(scene);
+const nuke = new Nuke(scene);
+// Recorded samples load after the first tap (browsers need a gesture for audio anyway).
+window.addEventListener('pointerdown', () => { sfx.unlock(); samples.loadSamples(); }, { once: true });
 vomit.onSplat = () => sfx.puddleSplat();
 
 let head = null, props = null, painter = null;
@@ -130,6 +135,7 @@ function resize() {
   const avail = Math.max(0.4, (h - uiTop - uiBottom) / h);
   const k = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   camera.position.z = Math.max(2.8 / (k * avail * 0.8), 2.4 / (k * camera.aspect * 0.62));
+  camera.userData.baseZ = camera.position.z;
   // Nudge the view so the head sits in the middle of that space.
   const lift = Math.round((uiBottom - uiTop) / 2);
   camera.setViewOffset(w, h, 0, lift, w, h);
@@ -379,7 +385,7 @@ function stamp(emoji, x, y, cls = '') {
 
 // ---------- bees + feelings ----------
 const app = {
-  head: () => head, props: () => props, painter: () => painter, vomit: () => vomit, ach: () => ach,
+  head: () => head, props: () => props, painter: () => painter, vomit: () => vomit, ach: () => ach, samples,
   rig, camera, stage, fx, sfx, st, line,
   grunt: (k) => grunt(k), react: (k, o) => react(k, o), addRage: (n) => addRage(n),
   showBubble: (t, ms) => showBubble(t, ms), talk: (t, o) => talk(t, o),
@@ -392,6 +398,7 @@ $$('[data-emote]').forEach((b) => b.addEventListener('click', () => {
   if (!head || st.popped) return;
   st.lastInteraction = now();
   emotions.play(b.dataset.emote);
+  if (b.dataset.emote === 'love' || b.dataset.emote === 'cry') samples.play('aww', { vol: 0.8, rate: b.dataset.emote === 'cry' ? 0.85 : 1 });
   ach.bumpSet('feels', b.dataset.emote);
 }));
 // Track the pointer anywhere on the page, for the eyes.
@@ -522,14 +529,18 @@ function doPoke(hit, e) {
   head.s.jaw.kick(7);
   const nosePos = props.on.clown ? props.anchorWorld('nose', new THREE.Vector3()) : null;
   if (nosePos && nosePos.distanceTo(hit.point) < 0.3) {
-    sfx.honk();
+    if (!samples.play('honk', { rate: rnd(0.9, 1.1) })) sfx.honk();
     fx.burst(hit.point, ['🤡', '📯', '🎺'], 5, { speed: 2.5, size: 0.3, life: 0.8 });
     showBubble('HONK.');
     grunt('hmph');
     addRage(2);
     return;
   }
-  sfx.boing(rnd(0.8, 1.4));
+  // Mix recorded cartoon sounds in with the synth ones, so pokes do not all sound the same.
+  const r = Math.random();
+  const played = (r < 0.3 && samples.play('boing', { rate: rnd(0.9, 1.4), vol: 0.7 }))
+    || (r >= 0.3 && r < 0.5 && samples.play('squeak', { rate: rnd(0.8, 1.3), vol: 0.8 }));
+  if (!played) sfx.boing(rnd(0.8, 1.4));
   sfx.boop();
   grunt(Math.random() < 0.6 ? 'ow' : 'yelp');
   stamp('👉', e.clientX, e.clientY, 'jab');
@@ -630,7 +641,7 @@ function landProjectile(p) {
     head.s.brow.kick(-6);
     head.forceBlink = 0.8;
     setTimeout(() => head && (head.forceBlink = 0), 500);
-    sfx.splat();
+    if (!samples.play('splat', { rate: rnd(0.85, 1.2), vol: 0.9 })) sfx.splat();
     grunt(kind === 'water' ? 'yelp' : 'oof');
     fx.burst(p.to, AMMO_FX[kind], 10, { speed: 3.5, size: 0.28, life: 0.9 });
     addRage(kind === 'water' ? 4 : 8);
@@ -853,6 +864,9 @@ document.addEventListener('pointerdown', (e) => {
 });
 document.addEventListener('animationend', (e) => {
   if (e.animationName === 'squish') e.target.classList.remove('squish');
+  // Pop-in done: drop the class. Otherwise a later press animation (squish) ends, the
+  // pop-in rule applies again, and the item restarts from invisible.
+  if (e.animationName === 'itemin') e.target.classList.remove('stagger');
 });
 $$('[data-cat]').forEach((b) => b.addEventListener('click', () => {
   sfx.unlock();
@@ -964,22 +978,34 @@ let pumpTimer = null;
 function startPump() { stopPump(); pumpOnce(); pumpTimer = setInterval(pumpOnce, 200); }
 function stopPump() { clearInterval(pumpTimer); pumpTimer = null; }
 
+const DISCO_BPM = 120; // measured from the song
+function discoBeat() {
+  if (!head) return;
+  st.pos.y.v = 2.2;
+  head.s.jaw.kick(5);
+  head.s.brow.kick(6);
+  st.rot.z.kick(rnd(-3, 3));
+}
 function toggleDisco() {
   st.disco = !st.disco;
   document.body.classList.toggle('disco', st.disco);
   $('[data-action="disco"]').classList.toggle('on', st.disco);
   if (st.disco) {
     ach.unlock('nightfever');
-    sfx.startDisco(() => {
-      if (!head) return;
-      st.pos.y.v = 2.2;
-      head.s.jaw.kick(5);
-      head.s.brow.kick(6);
-      st.rot.z.kick(rnd(-3, 3));
+    // The synth beat plays right away; the real song takes over once it has loaded.
+    sfx.startDisco(discoBeat);
+    const token = (st.discoToken = (st.discoToken ?? 0) + 1);
+    samples.loadOne('disco').then((buf) => {
+      if (!buf || !st.disco || token !== st.discoToken) return;
+      sfx.stopDisco();
+      st.discoSong = samples.loop('disco', { vol: 0.85 });
+      st.discoBeatN = -1;
     });
     react('disco', { force: true });
   } else {
     sfx.stopDisco();
+    st.discoSong?.stop();
+    st.discoSong = null;
     discoLights.forEach((l) => (l.intensity = 0));
     if (head) head.uniforms.uHue.value = 0;
   }
@@ -1010,6 +1036,7 @@ function yeet(self = false) {
   if (st.yeet || !head || st.popped) return;
   st.yeet = { t: 0, dir: Math.random() < 0.5 ? -1 : 1, self };
   sfx.whoosh(0.9);
+  samples.play('slide', { rate: 1.3, vol: 0.8 });
   grunt(self ? 'argh' : 'woo');
   if (!self) { react('yeet', { force: true }); ach.unlock('yeet'); }
 }
@@ -1020,9 +1047,44 @@ function meltdown() {
   sfx.scream();
   grunt('argh');
   const text = line('rage');
-  showBubble(text, 2500);
+  showBubble(text, 1500);
   talk(text, { pitch: 0.2, rate: 1.4 });
-  setTimeout(() => yeet(true), 1300);
+  // Wind-up: it swells and turns red while the red/black strobe runs. Then: KABOOM.
+  if (head) head.s.inflate.t = 0.55;
+  setTimeout(detonate, 1500);
+}
+
+function detonate() {
+  if (!head || st.nuked) return;
+  st.nuked = true;
+  st.popped = true; // reuses every "head is gone" guard
+  stopPump();
+  emotions.stop();
+  const p = head.group.getWorldPosition(new THREE.Vector3());
+  head.group.visible = false;
+  nuke.detonate(p);
+  if (!samples.play('nuke', { vol: 1 })) sfx.pop();
+  sfx.nukeRumble();
+  fx.burst(p, ['🧠', '👁️', '🦷', '👃', '☢️'], 30, { speed: 9, size: 0.42, life: 2.2, gravity: -7 });
+  const f = document.createElement('div');
+  f.className = 'flash nuke-flash';
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 1600);
+  showBubble('☢ KABOOM ☢', 2000);
+  // Regrow once the cloud has mostly cleared.
+  setTimeout(() => {
+    if (!head) return;
+    st.nuked = false;
+    st.popped = false;
+    st.meltdown = false;
+    st.rage = 0;
+    head.reset();
+    st.scale.x = 0.01; st.scale.v = 0;
+    head.group.visible = true;
+    if (!samples.play('boing', { rate: 0.8 })) sfx.boing(1.1);
+    showBubble('…okay. I feel better now.', 2600);
+    talk('Okay. I feel better now.');
+  }, 5600);
 }
 
 function deepFry() {
@@ -1079,7 +1141,7 @@ function resetAll() {
   st.caffeine = 0; st.crash = 0;
   $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
   head.look.set(0, 0);
-  sfx.ding();
+  if (!samples.play('scratch', { vol: 0.9 })) sfx.ding();
   showBubble('Good as new. Mostly.');
 }
 
@@ -1321,7 +1383,7 @@ function runChaos() {
   const hint = $('#hint');
   const oldHint = hint.textContent;
   const steps = [...CHAOS_STEPS].sort(() => Math.random() - 0.5).slice(0, 5);
-  sfx.slideWhistle(true);
+  if (!samples.play('airhorn', { vol: 0.8 })) sfx.slideWhistle(true);
   react('chaos', { force: true });
   steps.forEach(([name, fn], i) => {
     setTimeout(() => {
@@ -1363,7 +1425,7 @@ const ACTIONS = {
     sfx.slideWhistle(true);
     grunt('woo');
     react('noodle', { force: true });
-    setTimeout(() => { if (head) { head.s.scaleY.t = 1; sfx.slideWhistle(false); } }, 1700);
+    setTimeout(() => { if (head) { head.s.scaleY.t = 1; if (!samples.play('slide')) sfx.slideWhistle(false); } }, 1700);
   },
   lie() {
     ach.bump('lie');
@@ -1492,6 +1554,15 @@ $('#nonsense').addEventListener('click', () => {
   const t = nonsense();
   $('#sayText').value = t;
   sayUser(t);
+  // Pity laugh after the punchline: on the 1st joke, then every 10th (11th, 21st...).
+  // Any more often and it stops being funny. (The speech engine does not report its end
+  // reliably, so the timing is an estimate.)
+  st.jokes = (st.jokes ?? 0) + 1;
+  if (st.jokes % 10 === 1) {
+    const at = 700 + (t.length * 62) / Math.max(0.5, voiceState.rate);
+    clearTimeout(st.laughTimer);
+    st.laughTimer = setTimeout(() => samples.play('laugh', { vol: 0.7 }), at);
+  }
 });
 $('#randVoice').addEventListener('click', () => {
   const v = voiceState.voices;
@@ -1570,6 +1641,8 @@ const MOODS = {
   cry: ['#eef6ff', '#bcd6f0', '#6f93c4', '#223a60'],
   scream: ['#ffffff', '#ffd0d0', '#ff3a3a', '#5a0000'],
   flash: ['#ffffff', '#ffffff', '#fff6d0', '#ffd6f0'],
+  nuke: ['#fff3c0', '#ffb040', '#d2461a', '#2a0c04'],
+  ash: ['#d8cfc8', '#9a8a80', '#4a3c36', '#140e0c'],
 };
 const toColors = (list) => list.map((h) => new THREE.Color(h));
 const MOOD_COLORS = Object.fromEntries(Object.entries(MOODS).map(([k, v]) => [k, toColors(v)]));
@@ -1595,10 +1668,14 @@ function updateMood(dt, t) {
   if (st.caffeine > 0) mix(Math.sin(t * 18) > 0 ? 'caffeineA' : 'caffeineB', 0.9);
   if (emo === 'scream') mix('scream', 0.6 + 0.4 * Math.abs(Math.sin(t * 30)));
   if (st.meltdown) mix('meltdown', Math.sin(t * 16) > 0 ? 1 : 0.5);
-  if (st.popped) mix('flash', 1);
+  if (st.nuked) {
+    // White flash, then fire, then ash.
+    const nt = nuke.t;
+    mix(nt < 0.35 ? 'flash' : nt < 2.5 ? 'nuke' : 'ash', 1);
+  } else if (st.popped) mix('flash', 1);
   if (st.clones.length) bgTarget.forEach((c, i) => c.offsetHSL((t * 0.25 + i * 0.12) % 1, 0.25, 0));
   // Strobes snap; everything else eases in and out.
-  const snappy = st.caffeine > 0 || st.meltdown || st.popped || emo === 'scream';
+  const snappy = st.caffeine > 0 || (st.meltdown && !st.nuked) || (st.popped && !st.nuked) || emo === 'scream' || (st.nuked && nuke.t < 0.4);
   const k = snappy ? 1 : 1 - Math.exp(-dt * 3.5);
   bgNow.forEach((c, i) => c.lerp(bgTarget[i], k));
   // Writing CSS every other frame is plenty.
@@ -1728,7 +1805,7 @@ function frame() {
     // Deflate after the pumping stops. Loudly.
     const inf = head.s.inflate;
     if (!st.popped && inf.t > 0.05 && !pumpTimer && tNow - st.lastPump > 2600) {
-      sfx.fart(0.4 + inf.t * 1.4);
+      if (!samples.play('fart', { rate: 1.15 - inf.t * 0.4, vol: 0.9 })) sfx.fart(0.4 + inf.t * 1.4);
       grunt('ooh');
       st.zoom = 0.4 + inf.t * 1.4;
       inf.t = 0;
@@ -1756,7 +1833,10 @@ function frame() {
     updateRageUI();
 
     // Idle chatter
-    if (st.talkBack && tNow - st.lastInteraction > 30000) react('idle', { force: true });
+    if (st.talkBack && tNow - st.lastInteraction > 30000) {
+      samples.play('crickets', { vol: 0.8 }); // awkward silence, but louder
+      react('idle', { force: true });
+    }
 
     if (st.sickAt) {
       if (tNow >= st.sickAt - 1200 && !st.sickWarned) {
@@ -1803,6 +1883,11 @@ function frame() {
     shadow.scale.setScalar(Math.max(0.2, 1 - Math.abs(oy) * 0.2) * Math.max(0.01, st.scale.x) * (1 + head.s.inflate.x * 0.8));
     shadow.visible = head.group.visible;
 
+    if (st.disco && st.discoSong) {
+      // Bob on the song's real beats, read off the audio clock so it never drifts.
+      const beat = Math.floor((sfx.audioCtx().currentTime - st.discoSong.t0) / (60 / DISCO_BPM));
+      if (beat > st.discoBeatN) { st.discoBeatN = beat; if (beat >= 0) discoBeat(); }
+    }
     if (st.disco) {
       discoLights.forEach((l, i) => {
         const a = t * 2 + (i * Math.PI * 2) / 3;
@@ -1829,6 +1914,13 @@ function frame() {
   }
   updateMood(dt, t);
   fx.update(dt);
+  nuke.update(dt);
+  // Nuke camera: pull back to fit the cloud, and shake.
+  const baseZ = camera.userData.baseZ ?? camera.position.z;
+  camera.userData.baseZ = baseZ;
+  const zoom = nuke.zoom, shake = nuke.shake * 0.35;
+  camera.position.set(rnd(-shake, shake), 0.25 + zoom * 1.4 + rnd(-shake, shake), baseZ * (1 + zoom * 0.75));
+  camera.lookAt(0, 0.3 + zoom * 1.1, 0);
   renderer.render(scene, camera);
   if (recorder.active) recorder.draw();
   if (st.snapRequest) {

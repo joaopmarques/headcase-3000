@@ -564,3 +564,11 @@ export function toastDing(when = 0) {
     tone('sine', [f, f * 0.998], d, v, { attack: 0.002, when });
   }
 }
+export const sfxOut = () => (ac(), master);
+
+// Nuclear rumble under the recorded boom: a sub-bass drop and a long, dark noise tail.
+export function nukeRumble() {
+  tone('sine', [70, 22], 3.5, 0.9, { attack: 0.01 });
+  tone('sawtooth', [45, 25], 2.5, 0.25, { attack: 0.02 });
+  burst(5, 0.6, { type: 'lowpass', f0: 900, f1: 80, q: 0.7 });
+}

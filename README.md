@@ -38,4 +38,12 @@ Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools
 - `js/bees.js`: the bee swarm, stings, and swatting
 - `js/emotions.js`: cry, sneeze, wink, love, sick, scream, hiccups, and rage sweat
 - `js/vomit.js`: 3D vomit blobs that pour from the mouth and puddle on the floor
+- `js/nuke.js`: the nuclear meltdown: fireball, 3D mushroom cloud, and shockwave
+- `js/samples.js`: plays the recorded sound effects in `sfx/`
+
+## Sounds
+
+Most sounds are synthesized live with Web Audio. A few recorded ones in `sfx/` come from
+[freesound.org](https://freesound.org), all under **CC0 1.0 (public domain)**. The full list is in
+[sfx/CREDITS.md](sfx/CREDITS.md).
 - `js/main.js`: scene, tools, actions, rage-o-meter, command wheel, UI
