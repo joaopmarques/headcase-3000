@@ -75,10 +75,13 @@ export class ClipRecorder {
     const g = this.ctx, W = this.canvas.width, H = this.canvas.height;
     const k = W / this.stage.clientWidth;
     const grd = g.createRadialGradient(W / 2, H * 0.45, 5, W / 2, H * 0.45, Math.max(W, H) * 0.75);
-    grd.addColorStop(0, '#fff');
-    grd.addColorStop(0.35, '#ffd6f0');
-    grd.addColorStop(0.7, '#b7a6ff');
-    grd.addColorStop(1, '#6a4cff');
+    // Same live mood colors as the stage.
+    const css = getComputedStyle(this.stage);
+    const stop = (v, d) => css.getPropertyValue(v).trim() || d;
+    grd.addColorStop(0, stop('--c0', '#fff'));
+    grd.addColorStop(0.35, stop('--c1', '#ffd6f0'));
+    grd.addColorStop(0.7, stop('--c2', '#b7a6ff'));
+    grd.addColorStop(1, stop('--c3', '#6a4cff'));
     g.fillStyle = grd;
     g.fillRect(0, 0, W, H);
     g.strokeStyle = 'rgba(255,255,255,0.18)';
