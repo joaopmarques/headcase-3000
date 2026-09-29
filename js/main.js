@@ -458,6 +458,7 @@ function penColor() { return SHARPIE_COLORS[st.pen]; }
 function cyclePen() {
   st.pen = (st.pen + 1) % SHARPIE_COLORS.length;
   $('#penDot').style.background = penColor();
+  setSharpieCursor();
   sfx.marker();
 }
 function sharpieAt(hit) {
@@ -585,10 +586,40 @@ function setCursor(emoji) {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><text x='4' y='38' font-size='36'>${emoji}</text></svg>`;
   canvas.style.cursor = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 12 12, pointer`;
 }
+// Hand-drawn pointing finger. The fingertip sits on the hotspot (46, 16), so pokes land where it points.
+function setPokeCursor() {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'>
+    <g stroke='#111' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'>
+      <rect x='1' y='14' width='7' height='24' rx='2' fill='#00e5ff'/>
+      <rect x='18' y='11' width='28' height='10' rx='5' fill='#ffcf9e'/>
+      <rect x='6' y='13' width='20' height='25' rx='8' fill='#ffcf9e'/>
+      <path d='M14 27 H25 M14 32 H24' fill='none'/>
+      <path d='M9 22 Q17 17 24 22' fill='#ffcf9e'/>
+      <rect x='37' y='12.5' width='6' height='6' rx='2' fill='#fff1e2' stroke-width='1.5'/>
+    </g>
+  </svg>`;
+  canvas.style.cursor = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 46 16, pointer`;
+}
+// Hand-drawn crayon in the current pen color. Its tip sits exactly on the hotspot (3, 45),
+// so the line starts where the crayon touches. Emoji art differs per OS, so it can not be trusted for this.
+function setSharpieCursor() {
+  const c = penColor();
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'>
+    <g transform='translate(3 45) rotate(-45)' stroke='#111' stroke-width='2' stroke-linejoin='round'>
+      <path d='M0 0 L11 -5 L11 5 Z' fill='${c}'/>
+      <rect x='11' y='-6' width='34' height='12' rx='2' fill='${c}'/>
+      <rect x='17' y='-6' width='18' height='12' fill='#fff'/>
+      <rect x='45' y='-6' width='4' height='12' rx='1' fill='#111'/>
+    </g>
+  </svg>`;
+  canvas.style.cursor = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 3 45, crosshair`;
+}
 function setTool(tool) {
   st.tool = tool;
   $$('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === tool));
-  setCursor(tool === 'throw' ? AMMO[st.ammo].emoji : CURSORS[tool]);
+  if (tool === 'sharpie') setSharpieCursor();
+  else if (tool === 'poke') setPokeCursor();
+  else setCursor(tool === 'throw' ? AMMO[st.ammo].emoji : CURSORS[tool]);
   $('#hint').textContent = {
     poke: 'CLICK the head. Poke it. You know you want to.',
     pinch: 'GRAB and DRAG to stretch that face like taffy.',
