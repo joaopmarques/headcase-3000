@@ -368,7 +368,8 @@ const ACTIONS = {
   rec: app.toggleRec,
   snap() { st.snapRequest = true; },
   reset: resetAll,
-  newface() { $('#intro').classList.remove('hidden'); },
+  // Opened from the game, the face picker can be closed again (there is a head to go back to).
+  newface() { $('#intro').classList.add('closable'); $('#intro').classList.remove('hidden'); },
 };
 $$('[data-action]').forEach((b) => {
   const a = b.dataset.action;

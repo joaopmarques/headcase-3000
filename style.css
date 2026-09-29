@@ -1085,6 +1085,13 @@ a.btn:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink);
   padding: 16px;
 }
 .overlay.hidden { display: none; }
+/* Face picker: no close button on the first visit, only when opened from the game (New face). */
+#intro:not(.closable) #closeIntro { display: none; }
+/* While the face picker is open, the logo and its ticker stay on top of the dimmed backdrop,
+   and the card starts below the logo. Short screens scroll instead of squeezing the card. */
+body:has(#intro:not(.hidden)) .ticker { z-index: 56; }
+body:has(#intro:not(.hidden)) .logo { z-index: 55; }
+#intro { padding-top: 160px; overflow-y: auto; }
 .card {
   position: relative;
   width: min(520px, 100%);
@@ -1261,4 +1268,16 @@ body.lowfx .orb.on, body.lowfx .orb.on .ico, body.lowfx .tb-note { animation: no
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; }
+}
+
+/* Short phones: a more compact face picker, so it fits under the logo without scrolling. */
+@media (max-width: 700px) and (max-height: 760px) {
+  #intro { padding-top: 138px; padding-bottom: 10px; }
+  #intro .card { padding: 14px 18px; }
+  #intro .card h2 { font-size: 40px; }
+  #intro .card p { font-size: 15px; margin: 4px 0 8px; }
+  #intro .drop { padding: 10px; font-size: 17px; }
+  #intro .drop .big { font-size: 38px; }
+  #intro .row { margin-top: 8px; }
+  #intro .card .fine { margin-top: 8px; font-size: 12px; }
 }
