@@ -5,9 +5,25 @@ import * as samples from '../samples.js';
 import * as sfx from '../audio.js';
 import { line, nextLie, pick } from '../lines.js';
 import { $, $$, rnd, now, app, st } from './ctx.js';
-import { stage, scene, camera, discoLights, fx, vomit, nuke } from './stage.js';
+import { stage, scene, camera, discoLights, fx, vomit, steam, nuke } from './stage.js';
 
 // ---------- actions ----------
+// Spin it about six times in a row and it gets sick.
+const SPINS_TO_SICK = 6;
+const DIZZY_WINDOW = 4000; // ms between spins that still count as "in a row"
+function spunSick() {
+  st.dizzy = 0;
+  app.ach.unlock('motionsick');
+  fx.dizzy(app.head.group, 1.75, 3);
+  app.grunt('uhoh');
+  app.showBubble('I am going to be sick…', 1200);
+  // Let the spin wind down first, then it all comes out.
+  setTimeout(() => {
+    if (!app.head || st.yeet || st.popped) return;
+    if (app.emotions.active?.kind !== 'sick') app.emotions.play('sick');
+  }, 900);
+}
+
 function popHead() {
   st.popped = true;
   st.sickAt = 0; // exploding already emptied the stomach
@@ -93,6 +109,7 @@ function toggleClones() {
     st.clones.push(m);
   }
   btn.classList.add('on');
+  app.ach.unlock('legion');
   sfx.sparkle();
   app.showBubble('We are legion.');
   app.talk('We are legion.', { pitch: 0.6 });
@@ -159,6 +176,7 @@ function deepFry() {
   st.fried = !st.fried;
   $('[data-action="fry"]').classList.toggle('on', st.fried);
   if (!st.fried) { app.head.setFilter(null); return; }
+  app.ach.unlock('crispy');
   app.head.setFilter('saturate(5) contrast(2.2) brightness(1.15)', (ctx, fit) => {
     const F = fit.features;
     ctx.globalCompositeOperation = 'lighter';
@@ -203,7 +221,9 @@ function resetAll() {
   app.bees.stop(true);
   app.emotions.stop();
   vomit.clear();
+  steam.clear();
   st.sickAt = 0; st.sickWarned = false;
+  st.dizzy = 0;
   if (st.crash > 0 || st.caffeine > 0) app.head.forceBlink = 0;
   st.caffeine = 0; st.crash = 0;
   $$('[data-prop], [data-action]:not([data-action="rec"]):not([data-action="mimic"])').forEach((b) => b.classList.remove('on'));
@@ -319,6 +339,18 @@ const ACTIONS = {
   spin() {
     st.rot.y.kick((Math.random() < 0.5 ? -1 : 1) * 45);
     sfx.whoosh(0.7);
+    // Spins close together add up. A pause lets the head get its balance back.
+    const t = now();
+    st.dizzy = t - st.lastSpin < DIZZY_WINDOW ? st.dizzy + 1 : 1;
+    st.lastSpin = t;
+    if (st.dizzy >= SPINS_TO_SICK) { spunSick(); return; }
+    if (st.dizzy === SPINS_TO_SICK - 2) {
+      // Fair warning: stars, a wobble, and a plea.
+      fx.dizzy(app.head.group, 1.75, 2.2);
+      app.grunt('uhoh');
+      app.showBubble('Whoa… the room is spinning.', 1400);
+      return;
+    }
     app.grunt('woo');
     app.react('spin', { force: true });
   },

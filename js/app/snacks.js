@@ -43,6 +43,7 @@ function eat(food) {
     return;
   }
   sfx.gulp();
+  app.ach.bumpSet('foods', food.id); // broccoli counts: it went in, even if it came back out
   if (food.id === 'broccoli') {
     chew(0.6, () => {
       sfx.spit();

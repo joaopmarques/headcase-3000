@@ -56,6 +56,9 @@ export const st = {
   chaosRunning: false,
   ptr: null,
   sickAt: 0, // when a stuffed head throws up (ms), 0 = not scheduled
+  quietUntil: 0, // no talking or reaction bubbles before this time (ms), e.g. during the scream
+  dizzy: 0, // spins in a row; six makes the head sick (actions.js)
+  lastSpin: 0,
   saccade: new THREE.Vector2(),
   nextSaccade: 0,
 };

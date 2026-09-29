@@ -3,7 +3,7 @@ export const LINES = {
   poke: [
     ['Ow.', 'Hey!', 'Boop?', 'That tickles. No wait, it hurts.', 'Rude.', 'Excuse me??'],
     ['Stop poking me.', 'I have a family!', 'Do you poke everyone like this?', 'My lawyer will hear about this.', 'OW. Seriously.'],
-    ['I WILL BITE THAT FINGER.', 'POKE ME ONE MORE TIME.', 'I KNOW WHERE YOU LIVE. roughly.', 'AAAAAAARGH!'],
+    ['I WILL BITE THAT FINGER.', 'POKE ME ONE MORE TIME.', 'I KNOW WHERE YOU LIVE. roughly.', 'YOU ARE ON MY LIST. IN PEN.', 'I WILL HEADBUTT YOUR ANCESTORS.'],
   ],
   pinch: [
     ['Ooh, stretchy!', 'Is this skincare?', 'My cheeks!', 'Boing!'],
@@ -13,7 +13,7 @@ export const LINES = {
   pinchHold: [
     ['Ow ow ow ow!', 'Hey, that is attached!', 'Easy, easy!'],
     ['Let go! Let go!', 'That is my FACE!', 'Ow ow OW!'],
-    ['LET GO OF MY FACE!', 'I WILL SUE!', 'OW OW OW OW!'],
+    ['LET GO OF MY FACE!', 'I WILL SUE!', 'I WILL HAUNT YOUR WIFI.'],
   ],
   pinchMax: [
     ['It is going to rip!', 'Too far! Too far!', 'I am not made of rubber!'],
@@ -23,17 +23,17 @@ export const LINES = {
   slap: [
     ['Wow.', 'Did you just slap me?', 'I felt that in my ancestors.', 'Okay. Okay.'],
     ['How dare you!', 'Right in the dignity!', 'I am calling HR.'],
-    ['THAT IS IT!', 'YOU ABSOLUTE GOBLIN!', 'I WILL REMEMBER THIS!'],
+    ['THAT IS IT!', 'YOU ABSOLUTE GOBLIN!', 'I WILL REMEMBER THIS!', 'YOU SLAP LIKE A WET NAPKIN!', 'CATCH THESE CHEEKS. OH WAIT.'],
   ],
   bonk: [
     ['Bonk!', 'Ow, my everything.', 'I see birds.', 'Where am I?'],
     ['Is this whack-a-mole?!', 'My brain is now soup.', 'Not the head! It is all I have!'],
-    ['I AM ONLY A HEAD!', 'STOP BONKING!', 'CONCUSSION NUMBER NINE!'],
+    ['I AM ONLY A HEAD!', 'STOP BONKING!', 'CONCUSSION NUMBER NINE!', 'I WILL BONK YOU INTO NEXT TUESDAY!'],
   ],
   splat: [
     ['Blegh!', 'Right in the face!', 'Is this a pie? It is a pie.', 'I can not see!', 'Delicious. Rude, but delicious.'],
     ['Stop throwing food at me!', 'I just washed this face!', 'You missed. Kidding, you did not.'],
-    ['I WILL THROW YOU BACK!', 'THIS IS FOOD ABUSE!', 'MY EYES! MY BEAUTIFUL EYES!'],
+    ['I WILL THROW YOU BACK!', 'THIS IS FOOD ABUSE!', 'MY EYES! MY BEAUTIFUL EYES!', 'YOU WILL PAY FOR THE DRY CLEANING!'],
   ],
   miss: [['Ha! Missed!', 'Nice aim, champ.', 'Whoosh. Wow.', 'Try aiming at the giant head.']],
   sharpie: [['Is that permanent marker?!', 'That better be washable.', 'Are you drawing a unibrow?', 'I feel so artistic.', 'That tickles.']],
@@ -49,17 +49,16 @@ export const LINES = {
   sting: [
     ['OW! It stung me!', 'Bad bee!', 'Why me?!', 'My face is swelling!'],
     ['GET THEM OFF!', 'I am allergic! Probably!', 'NOT AGAIN!'],
-    ['I HATE NATURE!', 'THIS IS WORSE THAN THE PIE!', 'AAARGH BEES!'],
+    ['I HATE NATURE!', 'THIS IS WORSE THAN THE PIE!', 'I WILL SUE EVERY BEE ALIVE!'],
   ],
   swat: [['Got one!', 'Take that, bee!', 'Nice swat!', 'Justice.']],
   beesGone: [['Phew. They are gone.', 'I will never go outside again.', 'Thank you, bee slayer.']],
   shoo: [['Shoo!', 'Go away!', 'Get off my face!', 'Buzz off!']],
-  cry: [['WAAAAAAH!', 'Nobody loves meeee!', 'I am just a heeeead!', 'It is not faaaair!']],
-  sneezeBuild: [['Ah… ah…', 'Oh no… ah…', 'Ah… AAAH…']],
+  cry: [['Worst. Day. Of my face.', 'Nobody loves meeee!', 'I am just a heeeead!', 'Life is so unfair to heads!']],
+  sneezeBuild: [['Ah… ah…', 'Oh no… ah…', 'Here it comes…']],
   sneeze: [['Excuse me.', 'Bless me.', 'Sorry. Allergic to you.', 'That felt amazing.']],
   love: [['Aww, I love you!', 'You are my favorite human.', 'My heart! Wait, I do not have one.', 'Mwah!']],
   sick: [['I do not feel so good.', 'Blegh.', 'Everything is spinning.', 'Was it the pie?']],
-  scream: [['AAAAAAAAAH!', 'AAAAAAH! Why am I screaming?!']],
   hiccup: [['*hic* Oh no. *hic*', 'I have the *hic* hiccups.', 'Scare me! *hic*']],
   caffeine: [['I CAN SEE SOUNDS!', 'I AM SO AWAKE RIGHT NOW!', 'LETS START A BUSINESS!', 'WHY IS EVERYONE SO SLOW?!', 'I CAN TASTE COLORS!']],
   crash: [['…huh? I am awake. I am totally awake.', 'Five more minutes…', 'Was I asleep? I was not asleep.']],
@@ -76,7 +75,7 @@ export const LINES = {
   blep: [['Blep.', 'Mlem.', 'Thbbbt.']],
   hello: [['Hi! I am a head now!', 'Why am I a head?', 'Where is my body?', 'Oh wow, I have a face!', 'Hello, human!']],
   idle: [['Hello? Is anyone there?', 'I am bored. Poke me.', 'I used to have a body, you know.', 'I can hear you breathing.', 'Do something weird.']],
-  rage: [['THAT IS IT! I AM LEAVING!', 'I QUIT BEING A HEAD!', 'ENOUGH! GOODBYE!']],
+  rage: [['THAT IS IT! I AM LEAVING!', 'I QUIT BEING A HEAD!', 'ENOUGH! GOODBYE!', 'YOU DID THIS!', 'SEE YOU IN HELL, FINGER!']],
   disco: [['Let us boogie!', 'Disco fever!', 'I can feel the rhythm in my face.']],
 };
 

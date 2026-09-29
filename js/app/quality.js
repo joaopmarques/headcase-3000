@@ -1,7 +1,7 @@
 // Performance: "low effects" mode for slower devices. Auto mode switches it on when frames
 // stay slow; the Options screen can force it on or off.
 import { app } from './ctx.js';
-import { renderer, resize, fx, vomit } from './stage.js';
+import { renderer, resize, fx, vomit, steam } from './stage.js';
 
 export const quality = { mode: 'auto', low: false };
 let ema = 16.7, slowFor = 0, lastT = 0;
@@ -12,6 +12,7 @@ export function setLowFx(on) {
   resize();
   fx.density = on ? 0.5 : 1;
   vomit.density = on ? 0.5 : 1;
+  steam.density = on ? 0.5 : 1;
   if (app.head) app.head.lowFx = on;
   document.body.classList.toggle('lowfx', on);
 }

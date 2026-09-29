@@ -6,10 +6,29 @@ import { voiceState, isTalking } from '../voice.js';
 import { line } from '../lines.js';
 import { $, rnd, now, app, st } from './ctx.js';
 import { tickQuality } from './quality.js';
-import { stage, renderer, scene, camera, discoLights, shadow, rig, fx, vomit, nuke } from './stage.js';
+import { stage, renderer, scene, camera, discoLights, shadow, rig, fx, vomit, steam, nuke } from './stage.js';
 
 // ---------- loop ----------
 const tmpV = new THREE.Vector3();
+
+// ---------- steam from the ears ----------
+const FURY_AT = 64; // rage % where the sticker says "Seeing red"
+const earPos = new THREE.Vector3(), headPos = new THREE.Vector3(), earDir = new THREE.Vector3();
+let nextHiss = 0;
+function fume(k, dt, tNow) {
+  app.head.group.getWorldPosition(headPos);
+  for (const ear of ['earL', 'earR']) {
+    app.props.anchorWorld(ear, earPos);
+    earDir.subVectors(earPos, headPos).setY(0).normalize();
+    earPos.addScaledVector(earDir, 0.05); // just outside the skin
+    steam.stream(earPos, earDir, dt, 14 + k * 46);
+  }
+  // Kettle hisses, closer together the angrier it gets.
+  if (tNow > nextHiss) {
+    sfx.steamHiss(0.08 + k * 0.08);
+    nextHiss = tNow + 900 - Math.min(1, k) * 550 + rnd(0, 200);
+  }
+}
 let last = now();
 function frame() {
   const tNow = now();
@@ -146,9 +165,19 @@ function frame() {
     st.blush = Math.max(0, st.blush - dt * 0.8);
     const r = st.rage / 100;
     const hot = Math.max(0, st.fire) * 0.12;
-    app.head.s.tint.setRGB(r * 0.22 + st.blush * 0.18 + hot, st.blush * 0.02, st.blush * 0.04).add(emo.tint);
-    if (st.rage > 70 || st.meltdown) {
-      const k = st.meltdown ? 0.06 : 0.015;
+    // Furious ("Seeing red" and up): the face floods red with a throbbing pulse, and steam jets
+    // out of both ears. It all builds until the meltdown's KABOOM.
+    const fury = st.meltdown ? 1 : Math.max(0, (st.rage - FURY_AT) / (100 - FURY_AT));
+    const throb = fury * (0.6 + 0.4 * Math.sin(t * (8 + fury * 10)));
+    app.head.s.tint.setRGB(
+      r * 0.22 + fury * 0.28 + throb * 0.1 + st.blush * 0.18 + hot,
+      st.blush * 0.02 - fury * 0.12,
+      st.blush * 0.04 - fury * 0.14,
+    ).add(emo.tint);
+    if (fury > 0 && !st.popped && !st.yeet) fume(fury * (st.meltdown ? 2.5 : 1), dt, tNow);
+    // It shakes with fury, harder the closer it gets to blowing up.
+    if (fury > 0) {
+      const k = st.meltdown ? 0.06 : 0.004 + fury * 0.016;
       st.rot.z.x += rnd(-k, k);
       st.pos.x.x += rnd(-k, k);
     }
@@ -177,6 +206,7 @@ function frame() {
     app.updateProjectiles(dt);
     app.bees.update(dt, t);
     vomit.update(dt);
+    steam.update(dt);
     app.head.update(dt);
     app.props.update(dt, t);
 
@@ -248,6 +278,7 @@ function frame() {
   if (st.snapRequest) {
     // Must run right after render, while the WebGL buffer still holds the frame.
     st.snapRequest = false;
+    app.ach.unlock('saycheese');
     app.recorder.snapshot().then((blob) => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

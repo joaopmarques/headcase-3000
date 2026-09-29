@@ -18,6 +18,8 @@ function setMimicButton(on) {
 }
 async function toggleMimic() {
   if (mimic.state === 'playing') return;
+  // Unlocks on the first press: not everyone has a microphone to finish the trick.
+  app.ach.unlock('copycat');
   if (mimic.state === 'recording') {
     setMimicButton(false);
     sfx.micOff();
@@ -33,7 +35,6 @@ async function toggleMimic() {
     const rate = p <= 1 ? 0.55 + p * 0.9 : 1.45 + (p - 1) * 0.5;
     app.showBubble('🦜🦜🦜', buf.duration / rate * 1000 + 300);
     await mimic.play(rate);
-    app.ach.unlock('copycat');
     st.userSpeaking = false;
     st.lastInteraction = now();
     return;
@@ -62,13 +63,18 @@ function toggleRec() {
   sfx.recBeep();
   btn.classList.add('on');
   const badge = $('#recBadge');
+  badge.textContent = '● REC';
   badge.classList.remove('hidden');
+  $('#recFrame').classList.remove('hidden');
+  document.body.classList.add('recording');
   recorder.start(6, {
     onTick: (sec) => { badge.textContent = `● REC ${sec}s`; },
     onDone: (blob, ext) => {
       app.ach.unlock('director');
       app.ach.bump('clip');
       badge.classList.add('hidden');
+      $('#recFrame').classList.add('hidden');
+      document.body.classList.remove('recording');
       btn.classList.remove('on');
       sfx.ding();
       showClip(blob, ext);

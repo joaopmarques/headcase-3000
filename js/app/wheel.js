@@ -5,11 +5,11 @@ import { $, $$, app } from './ctx.js';
 // ---------- command wheel ----------
 const CAT_TITLES = {
   tools: 'TOOLS OF TORMENT', emotions: 'FEELINGS', chaos: 'CHAOS', food: 'SNACK BAR',
-  drip: 'DRIP', voice: 'VOICE BOX', media: 'PHOTO & VIDEO',
+  drip: 'DRIP', voice: 'VOICE BOX', media: 'PHOTO & VIDEO', options: 'OPTIONS',
 };
 // The things that should pop in one by one. Wrappers (the snack tray, the voice form and
 // its settings row) are walked into, so each snack, button, and slider animates on its own.
-const STAGGER_WRAPPERS = '.tray, form, .voicebar, .presets';
+const STAGGER_WRAPPERS = '.tray, form, .voicebar, .presets, .opt-vols, .opt-fx';
 function staggerItems(panel) {
   const out = [];
   const walk = (el) => {

@@ -192,6 +192,11 @@ export function sizzle(dur = 1.5) {
   burst(dur, 0.25, { type: 'highpass', f0: 4000, f1: 2000 });
 }
 
+// A short kettle hiss: steam leaving the ears.
+export function steamHiss(vol = 0.12) {
+  burst(0.35, vol, { type: 'highpass', f0: 5000, f1: 2500 });
+}
+
 export function ding() {
   tone('sine', [1320, 1320], 0.8, 0.2);
   tone('sine', [1980, 1980], 0.5, 0.08);

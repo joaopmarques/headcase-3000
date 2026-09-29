@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { FX } from '../fx.js';
 import { Vomit } from '../vomit.js';
+import { Steam } from '../steam.js';
 import { Nuke } from '../nuke.js';
 import * as samples from '../samples.js';
 import * as sfx from '../audio.js';
@@ -54,6 +55,7 @@ const rig = new THREE.Group();
 scene.add(rig);
 const fx = new FX(scene);
 const vomit = new Vomit(scene);
+const steam = new Steam(scene);
 const nuke = new Nuke(scene);
 // Recorded samples load after the first tap (browsers need a gesture for audio anyway).
 window.addEventListener('pointerdown', () => { sfx.unlock(); samples.loadSamples(); }, { once: true });
@@ -65,7 +67,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   // Fit the head into the open space between the ticker and the tool bar.
-  const uiTop = 40, uiBottom = w < 700 ? 140 : 170;
+  const uiTop = 40, uiBottom = w < 700 ? 205 : 170; // phones: the two-row tool bar is taller
   const avail = Math.max(0.4, (h - uiTop - uiBottom) / h);
   const k = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   camera.position.z = Math.max(2.8 / (k * avail * 0.8), 2.4 / (k * camera.aspect * 0.62));
@@ -78,4 +80,4 @@ function resize() {
 new ResizeObserver(resize).observe(stage);
 resize();
 
-export { canvas, stage, renderer, scene, camera, key, rim, rim2, discoLights, shadowTex, shadow, rig, fx, vomit, nuke, resize };
+export { canvas, stage, renderer, scene, camera, key, rim, rim2, discoLights, shadowTex, shadow, rig, fx, vomit, steam, nuke, resize };

@@ -1,4 +1,4 @@
-// Options screen: volume for each channel and the effects level. Saved in this browser.
+// Options panel in the tool bar: volume for each channel and the effects level. Saved in this browser.
 import * as sfx from '../audio.js';
 import * as samples from '../samples.js';
 import { voiceState } from '../voice.js';
@@ -69,14 +69,8 @@ $('#optReset').addEventListener('click', () => {
   sfx.ding();
 });
 
-$('#optionsBtn').addEventListener('click', () => {
-  sfx.unlock();
-  sfx.squeak(1.3);
-  render();
-  $('#optScreen').classList.remove('hidden');
-});
-$('#optClose').addEventListener('click', () => $('#optScreen').classList.add('hidden'));
-$('#optScreen').addEventListener('click', (e) => { if (e.target.id === 'optScreen') $('#optScreen').classList.add('hidden'); });
+// The gear opens the panel through the wheel. Refresh the note, since auto may have switched since.
+$('#optionsBtn').addEventListener('click', render);
 
 load();
 apply();

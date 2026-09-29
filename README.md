@@ -12,7 +12,7 @@ python3 serve.py
 
 Open http://localhost:5173. There is no build step and no install. Three.js, MediaPipe, and d3-delaunay load from jsDelivr.
 
-Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools`, `emotions`, `chaos`, `food`, `drip`, `media`) to open that tool bar category.
+Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools`, `emotions`, `chaos`, `food`, `drip`, `media`, `options`) to open that tool bar category. Add `?fanfare` to preview the completionist celebration.
 
 ## How the head works
 
@@ -59,5 +59,5 @@ Modules share state through one `app` object in `ctx.js` and never import each o
 - `trophies.js`: achievement toasts, the Trophy Case, stats, and the credit photo
 - `options.js`: volume and effects settings
 - `quality.js`: low-effects mode (auto, or forced from Options)
-- `feelings.js`, `faces.js`, `tools.js`, `wheel.js`, `actions.js`, `media.js`, `snacks.js`, `voicebox.js`, `mood.js`: one feature area each
+- `feelings.js`, `faces.js`, `tools.js`, `wheel.js`, `phone.js`, `tips.js`, `ticker.js`, `actions.js`, `media.js`, `snacks.js`, `voicebox.js`, `mood.js`: one feature area each
 - `loop.js`: the animation loop

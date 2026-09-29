@@ -1,4 +1,7 @@
 // Achievements. Counters and unlocks live in this browser (localStorage), nowhere else.
+import { FOODS } from './food.js';
+import { AMMO_ORDER } from './paint.js';
+
 const KEY = 'headcase.achievements.v1';
 
 // counter + need: unlocks when the counter reaches need. No counter: unlocked directly by id.
@@ -24,10 +27,17 @@ export const ACHIEVEMENTS = [
   { id: 'beekeeper', emoji: '🐝', name: 'Beekeeper', desc: 'Swat 7 bees.', counter: 'swat', need: 7 },
   { id: 'driplord', emoji: '🥳', name: 'Drip Lord', desc: 'Wear all 5 props at once.' },
   { id: 'allthefeels', emoji: '🎭', name: 'All the Feels', desc: 'Try every feeling.', counter: 'feels', need: 7 },
-  { id: 'copycat', emoji: '🎤', name: 'Copycat', desc: 'Make it copy your voice.' },
+  { id: 'copycat', emoji: '🎤', name: 'Copycat', desc: 'Ask it to copy your voice.' },
   { id: 'director', emoji: '🎬', name: 'Director', desc: 'Record a clip.' },
   { id: 'nightfever', emoji: '🪩', name: 'Night Fever', desc: 'Start the disco.' },
   { id: 'agentofchaos', emoji: '🎲', name: 'Agent of Chaos', desc: 'Press the chaos button.' },
+  { id: 'tastingmenu', emoji: '🍽️', name: 'Tasting Menu', desc: 'Feed it every kind of food.', counter: 'foods', need: FOODS.length },
+  { id: 'arsenal', emoji: '🎯', name: 'Full Arsenal', desc: 'Throw every kind of ammo.', counter: 'ammo', need: AMMO_ORDER.length },
+  { id: 'motionsick', emoji: '😵‍💫', name: 'Motion Sickness', desc: 'Spin it until it gets sick.' },
+  { id: 'crispy', emoji: '🍟', name: 'Extra Crispy', desc: 'Deep fry the head.' },
+  { id: 'legion', emoji: '👯', name: 'We Are Legion', desc: 'Summon the clones.' },
+  { id: 'saycheese', emoji: '📷', name: 'Say Cheese', desc: 'Take a snapshot.' },
+  { id: 'kissthering', emoji: '💍', name: 'Kiss the Ring', desc: 'Pay a visit to the creator\'s website.' },
   { id: 'completionist', emoji: '🏆', name: 'Completionist', desc: 'Unlock every other achievement.' },
 ];
 
@@ -41,6 +51,8 @@ export class Achievements {
     this.counters = saved.counters ?? {};
     this.sets = saved.sets ?? {}; // counters that count distinct things (feelings tried)
     this.unlocked = saved.unlocked ?? {}; // id -> timestamp
+    // Forget unlocks for achievements that no longer exist, so the count stays honest.
+    for (const id of Object.keys(this.unlocked)) if (!ACHIEVEMENTS.some((a) => a.id === id)) delete this.unlocked[id];
     this.onUnlock = onUnlock;
   }
 

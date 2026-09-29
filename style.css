@@ -11,7 +11,10 @@
   --R: 250px;
   --orb: 64px;
   --orb-in: 56px;
+  --orb-core: 38px;
   --tb-h: 118px;
+  --tb-border: 3.5px;
+  --tb-pad-y: 8px;
   /* Early-2000s plastic: a top shine, a dark bottom lip, and a hard comic shadow. */
   --gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.15) 48%, rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, 0.08) 100%);
   --bevel: inset 0 3px 0 rgba(255, 255, 255, 0.7), inset 0 -4px 0 rgba(0, 0, 0, 0.25);
@@ -28,7 +31,14 @@ html, body {
   color: var(--ink);
   background: #6a4cff;
   overscroll-behavior: none;
+  /* A toy, not a document: no text selection, no long-press callout, no image drag. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
+img { -webkit-user-drag: none; }
+/* Typing still needs a caret and selection. */
+input, textarea, select { -webkit-user-select: text; user-select: text; }
 
 /* ---------- stage (the whole screen) ---------- */
 /* The four stops are live: main.js blends them toward the current mood every frame. */
@@ -85,10 +95,8 @@ html, body {
   font-family: 'Bangers', sans-serif;
   font-size: 17px;
   letter-spacing: 2px;
-  line-height: 26px;
+  line-height: 30px;
   height: 30px;
-  border-bottom: 3px solid var(--pink);
-  box-shadow: 0 4px 0 var(--cyan);
 }
 .ticker div { display: inline-block; animation: scroll 40s linear infinite; }
 @keyframes scroll { to { transform: translateX(-50%); } }
@@ -96,7 +104,7 @@ html, body {
 /* ---------- logo: a banner hanging off the ticker ---------- */
 .logo {
   position: fixed;
-  top: 30px;
+  top: 20px; /* the top edge tucks under the ticker, so the banner hangs from it */
   left: 18px;
   z-index: 15;
   width: 300px;
@@ -150,38 +158,30 @@ html, body {
 }
 
 /* ---------- rage thermometer ---------- */
+/* Sits on top of the command wheel, at the left edge. The sticker rides on its right. */
 #rage {
+  /* The tube gets shorter on short screens, so the meter never climbs into the trophy button. */
+  --tube-h: clamp(90px, calc(100vh - 560px), 222px);
   position: fixed;
-  top: 44px;
-  right: 18px;
+  left: 4px;
+  bottom: calc(var(--Ry, var(--R)) + 14px);
   z-index: 15;
-  width: 64px;
-  transform-origin: top right;
+  transform-origin: bottom left;
   pointer-events: none;
 }
-.rage-title {
-  font-family: 'Bangers', sans-serif;
-  font-size: 14px;
-  letter-spacing: 1px;
-  text-align: center;
-  color: #fff;
-  -webkit-text-stroke: 1px var(--ink);
-  text-shadow: 2px 2px 0 var(--ink);
-  margin: 0 -30px 4px;
-}
-.thermo { position: relative; height: 270px; }
+.thermo { position: relative; width: 64px; height: calc(var(--tube-h) + 36px); }
 .tube {
   position: absolute;
   left: 50%;
   top: 0;
   width: 28px;
-  height: 222px;
+  height: var(--tube-h);
   transform: translateX(-50%);
   border: 3px solid var(--ink);
   border-bottom: 0;
   border-radius: 16px 16px 0 0;
   background: linear-gradient(90deg, #fff 0%, #e8f7ff 45%, #b9d6e6 100%);
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
   overflow: hidden;
 }
 .tube i {
@@ -191,9 +191,10 @@ html, body {
   bottom: 0;
   height: 0%;
   border-radius: 8px 8px 0 0;
-  background: linear-gradient(90deg, #ff5a5a, #ff0033 60%, #b00020);
+  /* Same color as the sticker (talk.js sets --rc on #rage), with a glassy shine on top. */
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.28)), var(--rc, #ff0033);
   box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.45);
-  transition: height 0.2s;
+  transition: height 0.2s, background-color 0.3s;
 }
 .ticks {
   position: absolute;
@@ -207,21 +208,24 @@ html, body {
   position: absolute;
   left: 50%;
   bottom: 0;
-  width: 60px;
-  height: 60px;
+  width: 44px; /* small: a bulb, not a button. The emoji keeps its size and pokes out a little. */
+  height: 44px;
   transform: translateX(-50%);
   border-radius: 50%;
   border: 3px solid var(--ink);
-  background: var(--gloss), radial-gradient(circle at 40% 35%, #ff6b6b, #ff0033 55%, #9a0018);
-  box-shadow: var(--bevel), 3px 3px 0 var(--ink);
+  /* Glass wall like the tube, mercury inside. No gloss or bevel: those say "button". */
+  background: radial-gradient(circle at 50% 55%, rgba(0, 0, 0, 0) 0 62%, rgba(0, 0, 0, 0.3) 100%), var(--rc, #ff0033);
+  transition: background-color 0.3s;
+  box-shadow: inset 0 0 0 1.5px #e8f7ff, 2px 2px 0 var(--ink); /* a thin glass rim, so the color shows */
   display: grid;
   place-items: center;
 }
 .bulb span { font-size: 30px; line-height: 1; }
 /* The sticker rides the mercury and says how mad things are. */
 .rage-label {
+  --rc: #ff0033; /* sticker color. The arrow, the liquid, and the bulb use it too. */
   position: absolute;
-  right: 52px;
+  left: 57px; /* the arrow's tip just touches the tube */
   bottom: 66px;
   translate: 0 50%;
   white-space: nowrap;
@@ -229,28 +233,31 @@ html, body {
   font-size: 17px;
   letter-spacing: 1px;
   color: #fff;
-  background: var(--gloss), #ff0033;
+  background: var(--gloss), var(--rc);
   border: 2.5px solid var(--ink);
   border-radius: 8px;
   padding: 3px 10px 2px;
   box-shadow: var(--bevel), 2px 2px 0 var(--ink);
-  transform: rotate(-5deg);
+  transform: rotate(5deg);
+  transform-origin: -9.5px 50%; /* tilt around the arrow's tip, so the tip stays on the liquid */
   transition: bottom 0.2s;
 }
-.rage-label::after {
+/* The arrow points left, at the liquid. Its tip is 9.5px outside the sticker's outer edge. */
+.rage-label::before {
   content: '';
   position: absolute;
-  right: -14px;
+  left: -20px;
   top: 50%;
   translate: 0 -50%;
   border: 8px solid transparent;
-  border-left: 11px solid var(--ink);
+  border-right: 11px solid var(--ink);
 }
-.rage-label.l0, .rage-label.l1 { background: var(--gloss), var(--lime); color: var(--ink); }
-.rage-label.l2, .rage-label.l3 { background: var(--gloss), var(--yellow); color: var(--ink); }
-.rage-label.l4 { background: var(--gloss), var(--orange); }
+.rage-label.l0, .rage-label.l1 { --rc: var(--lime); color: var(--ink); }
+.rage-label.l2, .rage-label.l3 { --rc: var(--yellow); color: var(--ink); }
+.rage-label.l4 { --rc: var(--orange); }
 .rage-label.pop { animation: labelpop 0.35s cubic-bezier(0.2, 2.4, 0.4, 1); }
 .rage-label.l5, .rage-label.l6 { animation: shake 0.12s infinite; }
+/* Top levels: a black sticker with red text. The arrow and the liquid stay red. */
 .rage-label.l7, .rage-label.l8 { animation: shake 0.07s infinite; font-size: 20px; background: var(--gloss), #111; color: #ff0033; }
 @keyframes labelpop { from { scale: 1.6; } }
 @keyframes shake {
@@ -280,10 +287,22 @@ html, body {
     radial-gradient(circle at 0 100%, transparent 0 calc(var(--R) * 0.33), rgba(0, 0, 0, 0.18) calc(var(--R) * 0.33) calc(var(--R) * 0.34), transparent calc(var(--R) * 0.34) calc(var(--R) * 0.64), rgba(0, 0, 0, 0.18) calc(var(--R) * 0.64) calc(var(--R) * 0.65), transparent calc(var(--R) * 0.65)),
     radial-gradient(circle at 20% 60%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%),
     radial-gradient(circle at 0 100%, #b04dff 0%, #7a2cff 60%, #4b16b8 100%);
-  box-shadow: inset -6px 6px 0 rgba(255, 255, 255, 0.25), 8px -2px 0 var(--ink);
+  box-shadow: inset -6px 6px 0 rgba(255, 255, 255, 0.25);
   pointer-events: auto;
 }
-.orb, .corner {
+/* The wheel's shadow: the same shape, 8px bigger, behind it. An offset box-shadow left gaps at the screen edges. */
+.wheel-bg::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: calc(100% + 3.5px + 8px);
+  height: calc(100% + 3.5px + 8px);
+  border-top-right-radius: 100%;
+  background: var(--ink);
+  z-index: -1;
+}
+.orb {
   position: absolute;
   padding: 0;
   display: grid;
@@ -304,7 +323,7 @@ html, body {
   box-shadow: var(--bevel), 2px 3px 0 var(--ink);
 }
 .orb.inner {
-  --r: calc(var(--R) * 0.58); /* clear of the corner pills and the outer ring */
+  --r: calc(var(--R) * 0.58); /* between the innermost ring and the outer ring */
   width: var(--orb-in);
   height: var(--orb-in);
   font-size: calc(var(--orb-in) * 0.5);
@@ -324,29 +343,47 @@ html, body {
 .orb.on .ico { animation: icohop 1.6s ease-in-out infinite; }
 @keyframes icohop { 0%, 60%, 100% { transform: translateY(0) rotate(0); } 70% { transform: translateY(-4px) rotate(-10deg); } 80% { transform: translateY(0) rotate(8deg); } }
 /* Corner pills: labeled, stacked in the tip of the wheel, clear of the inner orbs. */
-.corner {
-  left: 8px;
-  width: 80px;
-  height: 30px;
-  padding: 0 8px 0 5px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
-  border-radius: 999px;
-  font-family: 'Bangers', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.4px;
-  white-space: nowrap;
-  background: var(--gloss), #fff;
-  color: var(--ink);
-  box-shadow: var(--bevel), 2px 2px 0 var(--ink);
+/* Innermost ring: un-ruin and new face. Round like the rest, icon only. */
+.orb.core {
+  --r: calc(var(--R) * 0.24); /* inside the first groove of the wheel */
+  width: var(--orb-core);
+  height: var(--orb-core);
+  font-size: calc(var(--orb-core) * 0.5);
 }
-.corner .ico { font-size: 16px; line-height: 1; transition: transform 0.25s cubic-bezier(0.2, 2, 0.4, 1); }
-.corner.c1 { bottom: 40px; }
-.corner.c2 { bottom: 6px; background: var(--gloss), var(--pink); color: #fff; text-shadow: 1px 1px 0 var(--ink); }
-.corner:hover { background: var(--gloss), var(--yellow); color: var(--ink); text-shadow: none; }
-.corner:hover .ico { transform: scale(1.3) rotate(-12deg); }
+.orb.core.newface { background: var(--gloss), radial-gradient(circle at 50% 30%, #ffd1ea, var(--pink) 65%, #c2177a); }
+
+/* ---------- tooltips (tips.js) ---------- */
+#tip {
+  position: fixed;
+  z-index: 70;
+  max-width: 220px;
+  padding: 4px 10px 3px;
+  font-family: 'Bangers', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  color: var(--yellow);
+  background: var(--ink);
+  border-radius: 10px;
+  box-shadow: 2px 2px 0 var(--pink);
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.6;
+  transform-origin: var(--ax, 50%) 100%;
+  transition: opacity 0.12s, scale 0.25s cubic-bezier(0.2, 2, 0.4, 1);
+}
+#tip.below { transform-origin: var(--ax, 50%) 0; }
+#tip.show { opacity: 1; scale: 1; }
+#tip::after {
+  content: '';
+  position: absolute;
+  left: var(--ax, 50%);
+  top: 100%;
+  translate: -50% 0;
+  border: 6px solid transparent;
+  border-top-color: var(--ink);
+}
+#tip.below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--ink); }
 
 /* ---------- tool bar ---------- */
 #toolbar {
@@ -356,22 +393,34 @@ html, body {
   bottom: 12px;
   height: var(--tb-h);
   z-index: 11;
-  border: 3.5px solid var(--ink);
+  /* The border keeps its space, but the bar's look lives on ::before, one layer up. That lets
+     the tab (z-index -1) tuck under the bar's top edge instead of sitting on it. */
+  border: var(--tb-border) solid transparent;
   border-radius: 0 24px 24px 0;
+}
+#toolbar::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--tb-border));
+  z-index: 0;
+  border: var(--tb-border) solid var(--ink);
+  border-radius: inherit;
   background: var(--gloss), linear-gradient(180deg, #00d4f0, #0097c7);
   box-shadow: var(--bevel), 5px 5px 0 var(--ink);
+  pointer-events: none;
 }
 .tb-head {
   position: absolute;
+  z-index: -1; /* under the bar's edge */
   left: 42px;
-  top: -30px;
+  top: -34.5px;
   display: flex;
   align-items: flex-end;
   gap: 10px;
   pointer-events: none;
 }
 .tb-note {
-  margin-bottom: 7px;
+  margin-bottom: 12px; /* the tab reaches 5px under the bar; this keeps the note above it */
   font-size: 14px;
   line-height: 1;
   padding: 3px 10px;
@@ -391,7 +440,8 @@ html, body {
   font-family: 'Bangers', sans-serif;
   font-size: 18px;
   letter-spacing: 1.5px;
-  padding: 3px 16px 2px;
+  /* Bottom padding runs under the bar's edge, so the visible space below the text matches the top. */
+  padding: 4px 16px 10px;
   background: var(--gloss), var(--yellow);
   border: 3px solid var(--ink);
   border-bottom: 0;
@@ -401,16 +451,19 @@ html, body {
 .tb-body {
   position: absolute;
   inset: 0;
-  padding: 8px 12px 8px 44px;
+  padding: var(--tb-pad-y) 12px var(--tb-pad-y) 44px;
   overflow-x: auto;
   overflow-y: hidden;
+  border-radius: 0 21px 21px 0; /* the bar's radius minus its border */
   scrollbar-width: thin;
 }
 .tb-items {
   display: flex;
   gap: 10px;
   align-items: center;
-  height: 100%;
+  /* A fixed height, not 100%: when the bar scrolls, its scrollbar takes height away, and a
+     100% row re-centered itself higher and got its top clipped. This row stays put. */
+  height: calc(var(--tb-h) - 2 * var(--tb-border) - 2 * var(--tb-pad-y));
   min-width: max-content;
 }
 .tb-items[hidden] { display: none; }
@@ -435,7 +488,6 @@ html, body {
 .item.on {
   background: var(--gloss), var(--yellow);
   box-shadow: var(--bevel), 2px 3px 0 var(--ink), 0 0 0 4px var(--pink);
-  translate: 0 -6px;
 }
 
 /* Food panel */
@@ -502,8 +554,8 @@ html, body {
 /* ---------- achievements ---------- */
 .trophy {
   position: fixed;
-  top: 150px;
-  left: 22px;
+  top: 50px;
+  right: 22px;
   z-index: 15;
   width: 58px;
   height: 58px;
@@ -529,8 +581,13 @@ html, body {
   white-space: nowrap;
 }
 .trophy:hover { animation: none; scale: 1.08; }
-.trophy.bump { animation: trophybump 0.6s cubic-bezier(0.2, 2.4, 0.4, 1); }
-@keyframes trophybump { 30% { scale: 1.35; rotate: -12deg; } }
+/* A toast just landed: a happy, bouncy pop. */
+.trophy.bump { animation: trophybump 0.7s ease-out; }
+@keyframes trophybump {
+  25% { scale: 1.5; rotate: -14deg; }
+  50% { scale: 0.9; rotate: 8deg; }
+  75% { scale: 1.12; rotate: -4deg; }
+}
 
 #toasts { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; }
 /* Achievement toast: an actual slice of toast, launched from the bottom like a toaster pop. */
@@ -542,7 +599,7 @@ html, body {
   height: 190px;
   margin-left: -100px;
   filter: drop-shadow(4px 5px 0 rgba(17, 17, 17, 0.9));
-  animation: toastfly 3.9s forwards;
+  animation: toastfly 2.8s forwards; /* then trophies.js flies it into the trophy button */
 }
 .toast .bread {
   position: absolute;
@@ -569,9 +626,63 @@ html, body {
 @keyframes toastfly {
   0% { transform: translateY(0) rotate(var(--r0)); animation-timing-function: cubic-bezier(0.15, 0.9, 0.3, 1.1); }
   30% { transform: translateY(calc(-1 * var(--peak))) rotate(var(--r1)); animation-timing-function: ease-in-out; }
-  72% { transform: translateY(calc(-1 * var(--peak) + 18px)) rotate(var(--r2)); animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.4); }
-  100% { transform: translate(var(--dx), 40px) rotate(var(--r3)); }
+  100% { transform: translateY(calc(-1 * var(--peak) + 18px)) rotate(var(--r2)); }
 }
+
+/* ---------- completionist fanfare ---------- */
+#confetti { position: fixed; inset: 0; z-index: 65; pointer-events: none; overflow: hidden; }
+#confetti i {
+  position: absolute;
+  top: -20px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti var(--t) cubic-bezier(0.25, 0.5, 0.6, 1) var(--d) forwards;
+  opacity: 0;
+}
+@keyframes confetti {
+  0% { opacity: 1; translate: 0 0; rotate: 0deg; }
+  85% { opacity: 1; }
+  100% { opacity: 0; translate: var(--x) 108vh; rotate: var(--r); }
+}
+/* Party lights: colored beams sweep from the top corners, and the screen flashes. */
+#spotlights {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: spotflash 0.7s ease-out;
+  transition: opacity 0.4s;
+}
+#spotlights.out { opacity: 0; }
+/* Behind the popup card, over the dimmed backdrop. */
+#thanksScreen #spotlights { position: absolute; z-index: 0; }
+#thanksScreen .card { z-index: 1; }
+#spotlights::before, #spotlights::after {
+  content: '';
+  position: absolute;
+  top: -40vmax;
+  width: 80vmax;
+  height: 80vmax;
+  background: conic-gradient(from 150deg, transparent 0deg, rgba(255, 62, 165, 0.55) 10deg, transparent 22deg, rgba(0, 229, 255, 0.5) 34deg, transparent 46deg, rgba(255, 230, 0, 0.5) 58deg, transparent 70deg);
+  animation: sweep 1.3s ease-in-out infinite alternate;
+}
+#spotlights::before { left: -40vmax; }
+#spotlights::after { right: -40vmax; animation-direction: alternate-reverse; scale: -1 1; }
+@keyframes sweep { from { rotate: -18deg; } to { rotate: 18deg; } }
+/* Three quick white flashes at the start. */
+@keyframes spotflash {
+  0%, 34%, 68% { background: rgba(255, 255, 255, 0.35); }
+  17%, 51%, 100% { background: transparent; }
+}
+.card.thanks { width: min(440px, 100%); text-align: center; }
+/* The title shrinks on narrow screens instead of pushing the card off the edge. */
+.card.thanks h2 { font-size: clamp(26px, 8vw, 40px); }
+.card.thanks sup { font-size: 0.55em; }
+.card.thanks p { font-size: 18px; line-height: 1.35; margin: 8px 0 18px; }
+.thanks-medal { font-size: 56px; line-height: 1; margin-bottom: 4px; animation: trophybump 1.4s ease-out infinite; }
+#thanksGo { font-family: 'Bangers', sans-serif; letter-spacing: 1.5px; font-size: 22px; padding: 8px 26px; }
 
 /* ---------- credit ---------- */
 /* Lives inside the logo banner, under the title and above the wavy edge. */
@@ -708,23 +819,25 @@ button.squish { animation: squish 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) !importan
 @keyframes tabpop { from { scale: 0.4; rotate: -8deg; } }
 
 /* ---------- options + stats ---------- */
-/* The options orb is not a category: a plain grey-blue gear that spins on hover. */
-#optionsBtn { background: var(--gloss), radial-gradient(circle at 50% 30%, #fff, #d9e8ff 70%, #9fb7e6); }
+/* The options orb: a grey-blue gear that spins on hover (yellow like the rest when it is open). */
+#optionsBtn:not(.on) { background: var(--gloss), radial-gradient(circle at 50% 30%, #fff, #d9e8ff 70%, #9fb7e6); }
 #optionsBtn:hover .ico { transform: rotate(90deg) scale(1.2); }
-/* Effects picker spans the whole options card. */
-#fxMode { display: flex; width: 100%; }
-#fxMode button { flex: 1; padding: 7px 0; font-size: 16px; }
 .seg { display: inline-flex; gap: 0; margin: 4px auto 10px; border: 2.5px solid var(--ink); border-radius: 999px; overflow: hidden; box-shadow: 2px 2px 0 var(--ink); }
 .seg button { border: 0; border-radius: 0; box-shadow: none; font-family: 'Bangers', sans-serif; letter-spacing: 1px; font-size: 15px; padding: 5px 14px; background: var(--gloss), #fff; }
 .seg button + button { border-left: 2.5px solid var(--ink); }
 .seg button.on { background: var(--gloss), var(--yellow); }
 .seg button:hover { animation: none; background: var(--gloss), var(--lime); }
-.card.opts { width: min(460px, 100%); }
-.card.opts h3 { font-family: 'Bangers', sans-serif; letter-spacing: 1px; font-size: 20px; margin: 10px 0 6px; text-align: left; }
-.opt-rows { display: grid; gap: 8px; }
-.opt-row { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 16px; text-align: left; }
-.opt-row input { width: 100%; accent-color: var(--pink); }
-.opt-row b { font-family: 'Bangers', sans-serif; font-weight: normal; letter-spacing: 1px; text-align: right; }
+/* Options panel in the tool bar: the volume sliders on top, the effects level below. */
+.tb-items.opts { flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
+.opt-vols, .opt-fx { display: flex; align-items: center; gap: 16px; font-size: 14px; color: #fff; text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
+.opt-fx { gap: 10px; }
+.opt-row { display: flex; align-items: center; gap: 6px; }
+.opt-row input { width: 90px; accent-color: var(--pink); }
+.opt-row b { min-width: 34px; font-family: 'Bangers', sans-serif; font-weight: normal; letter-spacing: 1px; }
+#fxMode { margin: 0; }
+#fxMode button { font-size: 13px; padding: 3px 12px; text-shadow: none; }
+#optReset { font-size: 13px; padding: 3px 10px; text-shadow: none; }
+#fxNote { font-size: 12px; opacity: 0.85; }
 .stats-lede { font-size: 16px; margin: 0 0 10px; }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; overflow-y: auto; padding: 4px 4px 8px; text-align: left; }
 .stat { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 2.5px solid var(--ink); border-radius: 14px; background: var(--gloss), #fff; box-shadow: 2px 2px 0 var(--ink); }
@@ -778,7 +891,23 @@ button {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-button:hover { animation: jiggle 0.3s ease-in-out infinite; background: var(--lime); }
+button:hover { animation: jiggle 0.3s ease-in-out infinite; }
+/* Round buttons keep their gradient and fade a lime layer in on top (below). A flat color swap
+   dropped the gradient first, so they flashed see-through on the way to lime. */
+button:not(.orb, .trophy):hover { background: var(--lime); }
+.orb, .trophy { isolation: isolate; }
+.orb::before, .trophy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* above the button's own background, below its icon */
+  border-radius: 50%;
+  background: var(--gloss), radial-gradient(circle at 50% 30%, #fff, #e2ff8a 60%, var(--lime));
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.orb:not(.on):hover::before, .trophy:hover::before { opacity: 1; }
 button:active { transform: translate(3px, 3px) scale(0.96); box-shadow: 2px 2px 0 var(--ink); animation: none; }
 button.on {
   background: var(--yellow);
@@ -805,7 +934,8 @@ button small { display: block; font-size: 11px; opacity: 0.7; }
   border-radius: 22px;
   font-size: 20px;
   line-height: 1.15;
-  box-shadow: 4px 4px 0 var(--ink);
+  /* A drop shadow, not a box shadow, so the tail gets one too. */
+  filter: drop-shadow(4px 4px 0 var(--ink));
   pointer-events: none;
   opacity: 0;
   margin: -70px 0 0 -30px;
@@ -813,14 +943,28 @@ button small { display: block; font-size: 11px; opacity: 0.7; }
   transition: opacity 0.15s;
   z-index: 3;
 }
+/* The tail: a dark triangle below the bubble, with a white one inside it. The white one also
+   covers the bubble's bottom border where they meet, so the outline flows into the tail.
+   Both start at the inside edge of the 3px bottom border (top: 100%). */
+#bubble::before,
 #bubble::after {
   content: '';
   position: absolute;
+  top: 100%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-color: transparent;
+}
+#bubble::before {
   left: 18px;
-  bottom: -20px;
-  border: 10px solid transparent;
-  border-top: 14px solid var(--ink);
-  border-left: 12px solid var(--ink);
+  border-width: 18px 16px 0 0; /* 16 wide, 18 tall, vertical left edge */
+  border-top-color: var(--ink);
+}
+#bubble::after {
+  left: 21px; /* 3px in from the dark left edge */
+  border-width: 10px 9px 0 0; /* the same slope, 3px in from the dark slanted edge */
+  border-top-color: #fff;
 }
 #bubble.show { opacity: 1; animation: bubblepop 0.35s cubic-bezier(0.2, 2.5, 0.4, 1); }
 @keyframes bubblepop { from { scale: 0.2; rotate: -15deg; } to { scale: 1; rotate: 0deg; } }
@@ -871,25 +1015,39 @@ button small { display: block; font-size: 11px; opacity: 0.7; }
 .food-ghost.drop { animation: fooddrop 0.6s ease-in forwards; }
 @keyframes fooddrop { to { transform: translate(-50%, 200px) rotate(200deg); opacity: 0; } }
 
+/* Recording notice: a big red pill beside the tool bar tab. It pulses and glows so nobody misses it. */
 #recBadge {
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ff0033;
-  color: #fff;
+  margin-bottom: 7px;
+  padding: 5px 16px 4px;
   font-family: 'Bangers', sans-serif;
   font-size: 22px;
   letter-spacing: 2px;
-  padding: 4px 14px;
-  border: 2.5px solid var(--ink);
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  -webkit-text-stroke: 0.5px var(--ink);
+  background: var(--gloss), #ff0033;
+  border: 3px solid var(--ink);
   border-radius: 999px;
-  box-shadow: 2px 2px 0 var(--ink);
-  z-index: 5;
-  animation: blink 1s steps(2) infinite;
+  box-shadow: 3px 3px 0 var(--ink);
+  transform-origin: left bottom;
+  animation: recpulse 1s ease-in-out infinite;
 }
+@keyframes recpulse {
+  0%, 100% { scale: 1; box-shadow: 3px 3px 0 var(--ink), 0 0 0 0 rgba(255, 0, 51, 0.7); }
+  50% { scale: 1.08; box-shadow: 3px 3px 0 var(--ink), 0 0 0 8px rgba(255, 0, 51, 0); }
+}
+/* While recording: a red frame around the whole screen, 8px in from the edges. */
+#recFrame {
+  position: fixed;
+  inset: 8px;
+  z-index: 66;
+  border: 8px solid #ff0033;
+  border-radius: 16px;
+  pointer-events: none;
+}
+#recFrame.hidden { display: none; }
 #recBadge.hidden { display: none; }
-@keyframes blink { 50% { opacity: 0.55; } }
 
 .card.clip video {
   width: 100%;
@@ -1019,18 +1177,18 @@ body.dragging #dropHint { display: grid; }
 
 
 /* Buttons in the new shell shed the old jiggle-on-hover from inside panels that scroll. */
-.corner:hover { animation: none; scale: 1.08; }
 .orb:hover { animation: none; }
 .orb.on:hover { animation: orbglow 1.6s ease-in-out infinite; }
 .orb:hover .ico { transform: scale(1.25) rotate(-8deg); }
-.item { transition: translate 0.3s cubic-bezier(0.2, 2.2, 0.4, 1), rotate 0.3s cubic-bezier(0.2, 2.2, 0.4, 1), background 0.15s; }
-.item:hover { animation: none; translate: 0 -9px; rotate: -4deg; background: var(--gloss), var(--lime); }
+/* Hover: a springy tilt that dips 2px and shrinks a touch, instead of lifting.
+   A lift got clipped by the bar's top edge. The dip keeps the tilted corners inside the bar. */
+.item { transition: translate 0.3s cubic-bezier(0.2, 2.2, 0.4, 1), rotate 0.3s cubic-bezier(0.2, 2.2, 0.4, 1), scale 0.3s cubic-bezier(0.2, 2.2, 0.4, 1), background 0.15s; }
+.item:hover { animation: none; translate: 0 2px; scale: 0.98; rotate: -4deg; background: var(--gloss), var(--lime); }
 .item:nth-child(even):hover { rotate: 4deg; }
 .item:hover b { animation: wobble 0.6s ease-in-out; }
 @keyframes wobble { 20% { transform: rotate(-14deg) scale(1.2); } 45% { transform: rotate(10deg) scale(1.15); } 70% { transform: rotate(-5deg) scale(1.08); } }
 .item.on:hover { background: var(--gloss), var(--yellow); }
 #bubble { z-index: 6; }
-#recBadge { position: fixed; top: 44px; z-index: 16; }
 .stamp { z-index: 7; }
 
 /* Low-effects mode: decorative CSS motion off (the 3D fun stays). */
@@ -1040,27 +1198,64 @@ body.lowfx .orb.on, body.lowfx .orb.on .ico, body.lowfx .tb-note { animation: no
 /* ---------- phones ---------- */
 @media (max-width: 700px) {
   .card h2 .br-m { display: inline; }
-  :root { --R: 172px; --orb: 44px; --orb-in: 42px; --tb-h: 96px; }
+  /* The wheel is an ellipse on phones: taller than it is wide, so the tool bar keeps its room. */
+  :root { --Rx: 160px; --Ry: 252px; --R: var(--Rx); --orb: 50px; --orb-in: 46px; --orb-core: 30px; --tb-border: 3px; --tb-pad-y: 6px; --tb-h: 166px; }
+  #wheel { width: var(--Rx); height: var(--Ry); }
+  .wheel-bg {
+    background:
+      radial-gradient(ellipse var(--Rx) var(--Ry) at 0 100%, transparent 0 33%, rgba(0, 0, 0, 0.18) 33% 34%, transparent 34% 64%, rgba(0, 0, 0, 0.18) 64% 65%, transparent 65%),
+      radial-gradient(circle at 20% 60%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%),
+      radial-gradient(ellipse var(--Rx) var(--Ry) at 0 100%, #b04dff 0%, #7a2cff 60%, #4b16b8 100%);
+  }
+  .orb { --k: 0.9; left: calc(var(--k) * var(--Rx) * sin(var(--am))); bottom: calc(var(--k) * var(--Ry) * cos(var(--am))); }
+  .orb.inner { --k: 0.58; }
+  .orb.core { --k: 0.25; }
+  /* Angles that space the orbs evenly along the ellipse (a circle's even angles bunch up near the top). */
+  .orb[data-cat='tools'] { --am: 11deg; }
+  .orb[data-cat='emotions'] { --am: 32.3deg; }
+  .orb[data-cat='chaos'] { --am: 50.5deg; }
+  .orb[data-cat='food'] { --am: 66.8deg; }
+  .orb[data-cat='drip'] { --am: 82deg; }
+  .orb[data-cat='voice'] { --am: 20deg; }
+  .orb[data-cat='media'] { --am: 47deg; }
+  #optionsBtn { --am: 72deg; }
+  .orb[data-action='reset'] { --am: 31deg; }
+  .orb[data-action='newface'] { --am: 71deg; }
+  /* Two rows of items that scroll sideways. */
+  /* Options: one column that fits the bar, so no slider hides off to the side. */
+  .tb-items.opts { gap: 6px; }
+  .opt-vols { display: grid; gap: 3px; font-size: 12px; }
+  .opt-row span { width: 58px; }
+  .opt-row input { width: 76px; height: 16px; }
+  .opt-fx > span, #fxNote { display: none; }
+  #fxMode button { padding: 3px 8px; font-size: 12px; }
+  #optReset { padding: 3px 8px; font-size: 12px; }
+  .tb-items:not(.voice, .opts):not([hidden]), .tray { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: max-content; justify-content: start; gap: 8px; align-content: center; }
   /* scale, not transform: the sway animation owns transform. */
-  .logo { scale: 0.62; }
-  #rage { scale: 0.62; }
-  .ticker { font-size: 14px; height: 26px; line-height: 22px; }
-  .logo { top: 26px; }
-  #toolbar { left: calc(var(--R) - 26px); right: 8px; bottom: 8px; border-width: 3px; }
-  .tb-body { padding: 6px 8px 6px 34px; }
-  .tb-tab { font-size: 14px; }
-  .item { width: 70px; height: 74px; font-size: 11px; border-radius: 13px; }
-  .item b { font-size: 26px; }
-  .tray .food { width: 60px; height: 60px; font-size: 32px; }
+  .logo { scale: 0.71; }
+  /* The tube shortens on short phones so the meter stays under the logo. */
+  #rage { scale: 0.8; --tube-h: clamp(90px, calc(125vh - 568px), 222px); }
+  .ticker { font-size: 14px; height: 26px; line-height: 26px; }
+  .logo { top: 16px; }
+  /* Starts under the wheel, so the bar's square top-left corner never shows. */
+  #toolbar { left: calc(var(--R) - 52px); right: 8px; bottom: 8px; }
+  .tb-body { padding: var(--tb-pad-y) 8px var(--tb-pad-y) 60px; }
+  /* The tab's left end tucks under the wheel, so it looks like it slides out from beneath it.
+     The hidden end needs no rounded corner. The left padding keeps the text clear of the wheel. */
+  .tb-tab { font-size: 14px; white-space: nowrap; padding: 3px 9px 8px 30px; border-top-left-radius: 0; }
+  /* wheel.js sets the widths so the next column peeks in. */
+  .item { width: var(--item-w, 64px); height: 68px; font-size: 10px; border-radius: 13px; }
+  .item b { font-size: 24px; }
+  .tray .food { width: var(--food-w, 60px); height: var(--food-w, 60px); font-size: calc(var(--food-w, 60px) * 0.53); }
   /* Too tight for labels on phones: icon-only squares side by side. */
-  .corner { width: 30px; height: 30px; padding: 0; justify-content: center; border-radius: 9px; bottom: 6px; }
-  .corner .lbl { display: none; }
-  .corner.c1 { left: 6px; bottom: 40px; }
-  .corner.c2 { left: 6px; bottom: 6px; }
-  .trophy { top: 100px; left: 12px; width: 44px; height: 44px; font-size: 21px; }
+  /* Top right. The logo fills the room to its left (phone.js). */
+  .trophy { top: 44px; left: auto; right: 12px; width: 44px; height: 44px; font-size: 21px; }
   .toast { scale: 0.75; }
-  .tb-head { left: 30px; top: -25px; }
-  .tb-note { font-size: 11px; margin-bottom: 5px; }
+  .tb-head { left: -8px; top: -27px; }
+  .tb-note { font-size: 11px; margin-bottom: 9px; }
+  /* No room beside the tab on phones: the pill sits just above it, where the tip text goes. */
+  #recBadge { position: absolute; left: 28px; bottom: calc(100% + 6px); margin: 0; font-size: 18px; padding: 4px 12px 3px; }
+  body.recording #hint { visibility: hidden; }
   #hint { font-size: 12px; bottom: calc(var(--tb-h) + 36px); left: calc(50% + var(--R) / 4); }
 }
 

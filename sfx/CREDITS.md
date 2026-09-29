@@ -20,6 +20,7 @@ CC0 needs no attribution, but credit where it is due. These are the freesound pr
 | `barf.mp3` | Vomitus 1 by magnuswaker | https://freesound.org/people/magnuswaker/sounds/530062/ |
 | `wilhelm.mp3` | Wilhelm Scream by qubodup | https://freesound.org/people/qubodup/sounds/813308/ |
 | `disco.mp3` | Diisco 70's - Cinematic Disco Retro Music.wav by szegvari | https://freesound.org/people/szegvari/sounds/595384/ |
+| `fanfare.mp3` | Trumpet Fanfare by bevibeldesign | https://freesound.org/people/bevibeldesign/sounds/350428/ |
 
 Edits: `crickets.mp3` is trimmed to the first 4.5 seconds with fades, and `nuke.mp3` is loudness-normalized. `disco.mp3` is cut to a 64-second loop (32 bars at 120 BPM, starting on the first beat) and loudness-normalized. The rest are the previews as downloaded.
 

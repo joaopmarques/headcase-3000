@@ -55,9 +55,10 @@ export class Emotions {
         A.fatBefore = head.s.fatTarget; // puking empties this out
         break;
       case 'scream':
-        // The one and only Wilhelm scream (synth scream if the sample is not ready).
-        if (!app.samples?.play('wilhelm', { vol: 1 })) { app.sfx.scream(); app.grunt('argh'); }
-        app.react('scream', { force: true });
+        // The one and only Wilhelm scream (synth scream if the sample is not ready). No words:
+        // the scream says it all, so the head keeps quiet for the whole emote.
+        app.hush(dur * 1000 + 100);
+        if (!app.samples?.play('wilhelm', { vol: 1 })) app.sfx.scream();
         break;
       case 'hiccup':
         A.next = 0.4;

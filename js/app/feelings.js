@@ -12,7 +12,7 @@ const beeApp = {
   head: () => app.head, props: () => app.props, painter: () => app.painter, vomit: () => vomit, ach: () => app.ach, samples,
   rig, camera, stage, fx, sfx, st, line,
   grunt: (k) => app.grunt(k), react: (k, o) => app.react(k, o), addRage: (n) => app.addRage(n),
-  showBubble: (t, ms) => app.showBubble(t, ms), talk: (t, o) => app.talk(t, o),
+  showBubble: (t, ms) => app.showBubble(t, ms), talk: (t, o) => app.talk(t, o), hush: (ms) => app.hush(ms),
   onGone: () => $('[data-action="bees"]').classList.remove('on'),
 };
 const bees = new Bees(beeApp);

@@ -1,6 +1,6 @@
 // Speech bubble, rage-o-meter, and how the head talks and reacts.
 import * as sfx from '../audio.js';
-import { voiceState, speak } from '../voice.js';
+import { voiceState, speak, stopSpeaking } from '../voice.js';
 import { line } from '../lines.js';
 import { $, now, app, st } from './ctx.js';
 import { stage } from './stage.js';
@@ -36,19 +36,33 @@ function updateRageUI() {
   RAGE_LABELS.forEach(([min], i) => { if (pct >= min) lvl = i; });
   if (st.meltdown) lvl = 8;
   const label = $('#rageLabel');
-  // Ride the mercury: bulb top (66px) plus the fill height of the 222px tube.
-  label.style.bottom = `${58 + (pct / 100) * 222}px`;
+  // Ride the liquid: the tube's bottom sits a little above the bulb's base, and the liquid fills
+  // its inside height. The sticker's center, where the arrow tip is, sits on the liquid's surface.
+  const tube = $('#rage .tube');
+  const base = tube.parentElement.clientHeight - tube.offsetHeight;
+  label.style.bottom = `${base + (pct / 100) * (tube.clientHeight || 219)}px`;
   if (lvl !== rageLevelShown) {
     rageLevelShown = lvl;
     label.textContent = lvl === 8 ? '☢ KABOOM ☢' : RAGE_LABELS[lvl][1];
     label.className = `rage-label l${lvl}`;
+    // The liquid and the bulb take the sticker's color.
+    $('#rage').style.setProperty('--rc', getComputedStyle(label).getPropertyValue('--rc'));
     void label.offsetWidth;
     label.classList.add('pop');
   }
   document.body.classList.toggle('angry', pct > 70);
 }
 
+// Silence for a while: stop talking, drop the bubble, and ignore reactions until then.
+function hush(ms) {
+  st.quietUntil = now() + ms;
+  stopSpeaking();
+  clearTimeout(bubbleTimer);
+  bubble.classList.remove('show');
+}
+
 function talk(text, opts = {}) {
+  if (now() < st.quietUntil) return;
   const ok = speak(text, opts);
   if (!ok) {
     // No speech engine. Flap the mouth anyway, it is the thought that counts.
@@ -65,6 +79,7 @@ function grunt(kind) {
 function react(kind, { force = false } = {}) {
   st.lastInteraction = now();
   const t = now();
+  if (t < st.quietUntil) return;
   if (!force && t - st.lastBubbleReact < 350) return;
   st.lastBubbleReact = t;
   const text = line(kind, rageLevel());
@@ -99,4 +114,4 @@ function stamp(emoji, x, y, cls = '') {
 }
 
 // Other modules reach these through `app`.
-Object.assign(app, { addRage, bubble, grunt, react, sayUser, showBubble, stamp, talk, updateRageUI });
+Object.assign(app, { addRage, bubble, grunt, hush, react, sayUser, showBubble, stamp, talk, updateRageUI });

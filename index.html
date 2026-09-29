@@ -47,7 +47,6 @@
     <canvas id="c"></canvas>
     <div id="bubble"></div>
     <div id="hint"></div>
-    <div id="recBadge" class="hidden">● REC</div>
   </section>
 
   <div class="ticker" aria-hidden="true">
@@ -73,7 +72,6 @@
   <div id="toasts" aria-live="polite"></div>
 
   <div id="rage" aria-label="Rage-o-meter">
-    <div class="rage-title">RAGE-O-METER</div>
     <div class="thermo">
       <div class="tube"><i></i><div class="ticks"></div></div>
       <div class="bulb"><span id="rageFace">😊</span></div>
@@ -91,15 +89,16 @@
     <button class="orb outer" data-cat="drip" style="--a: 81deg" title="Drip"><span class="ico">🥳</span></button>
     <button class="orb inner" data-cat="voice" style="--a: 15deg" title="Voice"><span class="ico">🎙️</span></button>
     <button class="orb inner" data-cat="media" style="--a: 45deg" title="Photo &amp; video"><span class="ico">🎬</span></button>
-    <button class="orb inner" id="optionsBtn" style="--a: 75deg" title="Options"><span class="ico">⚙️</span></button>
-    <button class="corner c1" data-action="reset" title="Un-ruin: undo all the damage"><span class="ico">🧽</span><span class="lbl">UN-RUIN</span></button>
-    <button class="corner c2" data-action="newface" title="Upload a new face"><span class="ico">🙂</span><span class="lbl">NEW FACE</span></button>
+    <button class="orb inner" id="optionsBtn" data-cat="options" style="--a: 75deg" title="Options"><span class="ico">⚙️</span></button>
+    <button class="orb core" data-action="reset" style="--a: 23deg" title="Un-ruin: undo all the damage"><span class="ico">🧽</span></button>
+    <button class="orb core newface" data-action="newface" style="--a: 67deg" title="Upload a new face"><span class="ico">🙂</span></button>
   </nav>
 
   <!-- Tool bar: shows the items of the selected wheel category -->
   <section id="toolbar">
     <div class="tb-head">
       <div class="tb-tab" id="tbTitle">TOOLS OF TORMENT</div>
+      <div id="recBadge" class="hidden">● REC</div>
       <div class="tb-note" id="tbNote" hidden></div>
     </div>
     <div class="tb-body">
@@ -180,6 +179,25 @@
         <button class="item" data-action="rec"><b>🎬</b>REC CLIP<small>6 seconds</small></button>
         <button class="item" data-action="snap"><b>📷</b>SNAPSHOT<small>save a PNG</small></button>
       </div>
+
+      <div class="tb-items opts" data-panel="options" hidden>
+        <div class="opt-vols">
+          <label class="opt-row"><span>🔊 master</span><input type="range" min="0" max="1" step="0.05" data-vol="master" /><b></b></label>
+          <label class="opt-row"><span>💥 sfx</span><input type="range" min="0" max="1" step="0.05" data-vol="sfx" /><b></b></label>
+          <label class="opt-row"><span>🗣️ voice</span><input type="range" min="0" max="1" step="0.05" data-vol="voice" /><b></b></label>
+          <label class="opt-row"><span>🪩 music</span><input type="range" min="0" max="1" step="0.05" data-vol="music" /><b></b></label>
+        </div>
+        <div class="opt-fx">
+          <span>✨ effects</span>
+          <div class="seg" id="fxMode" role="radiogroup">
+            <button type="button" data-fx="auto" class="on">AUTO</button>
+            <button type="button" data-fx="high">FULL</button>
+            <button type="button" data-fx="low">LOW</button>
+          </div>
+          <button type="button" id="optReset" class="pill" title="Back to defaults">↺ reset</button>
+          <small id="fxNote">Auto switches to low effects if your device struggles.</small>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -250,27 +268,17 @@
     </div>
   </div>
 
-  <div id="optScreen" class="overlay hidden">
-    <div class="card opts">
-      <button id="optClose" class="x" aria-label="Close">✖</button>
-      <h2>OPTIONS</h2>
-      <h3>🔊 VOLUME</h3>
-      <div class="opt-rows">
-        <label class="opt-row"><span>Master</span><input type="range" min="0" max="1" step="0.05" data-vol="master" /><b></b></label>
-        <label class="opt-row"><span>Sound effects</span><input type="range" min="0" max="1" step="0.05" data-vol="sfx" /><b></b></label>
-        <label class="opt-row"><span>Voice</span><input type="range" min="0" max="1" step="0.05" data-vol="voice" /><b></b></label>
-        <label class="opt-row"><span>Music</span><input type="range" min="0" max="1" step="0.05" data-vol="music" /><b></b></label>
-      </div>
-      <h3>✨ EFFECTS</h3>
-      <div class="seg" id="fxMode" role="radiogroup">
-        <button data-fx="auto" class="on">AUTO</button>
-        <button data-fx="high">FULL</button>
-        <button data-fx="low">LOW</button>
-      </div>
-      <p class="fine" id="fxNote">Auto switches to low effects if your device struggles.</p>
-      <p class="fine">Saved in this browser. <button id="optReset" class="linkish">Back to defaults</button></p>
+  <div id="thanksScreen" class="overlay hidden" role="dialog" aria-labelledby="thanksTitle">
+    <div class="card thanks">
+      <div class="thanks-medal">🏆</div>
+      <h2 id="thanksTitle">Congratulations!</h2>
+      <p>Hey! This is João here, the creator of Headcase 4000<sup>TM</sup>, just to say thanks for playing! The world needs more joy. Keep being awesome! ❤️</p>
+      <button id="thanksGo" class="pill go">LET'S GO!</button>
     </div>
   </div>
+
+  <!-- A red frame around the whole screen while a clip records. -->
+  <div id="recFrame" class="hidden" aria-hidden="true"></div>
 
   <div id="dropHint">DROP IT LIKE IT'S HOT 🔥</div>
 

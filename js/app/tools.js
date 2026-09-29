@@ -140,6 +140,7 @@ function throwAt(e) {
   st.projectiles.push({ sp, from, to: target, t: 0, dur: 0.38, hit, kind, spin: rnd(-14, 14) });
   sfx.throwWhoosh();
   app.ach.bump('throw');
+  app.ach.bumpSet('ammo', kind);
 }
 function landProjectile(p) {
   const { hit, kind } = p;

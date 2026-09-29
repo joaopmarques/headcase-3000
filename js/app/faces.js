@@ -7,7 +7,7 @@ import { pick } from '../lines.js';
 import { makeDemoFace } from '../demoFace.js';
 import { fallbackFit } from '../fitcore.js';
 import { $, $$, app, st } from './ctx.js';
-import { canvas, rig, fx, vomit } from './stage.js';
+import { canvas, rig, fx, vomit, steam } from './stage.js';
 
 // ---------- face loading ----------
 const LOADING = [
@@ -69,7 +69,9 @@ function installHead(canvas, fit) {
   app.bees.stop(true);
   app.emotions.stop();
   vomit.clear();
+  steam.clear();
   st.sickAt = 0; st.sickWarned = false;
+  st.dizzy = 0;
   st.caffeine = 0; st.crash = 0;
   st.projectiles.forEach((p) => p.sp.removeFromParent());
   st.projectiles = [];
