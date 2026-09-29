@@ -54,6 +54,18 @@ export class ClipRecorder {
     }, 1000);
   }
 
+  // One frame as a PNG. Call right after the WebGL render, like draw().
+  snapshot() {
+    // While a clip records, reuse its canvas size so the video does not glitch.
+    if (!this.active) {
+      const scale = Math.min(1, 1920 / this.gl.width);
+      this.canvas.width = Math.round(this.gl.width * scale);
+      this.canvas.height = Math.round(this.gl.height * scale);
+    }
+    this.draw();
+    return new Promise((res) => this.canvas.toBlob(res, 'image/png'));
+  }
+
   stop() {
     if (this.active && this.rec.state !== 'inactive') this.rec.stop();
   }

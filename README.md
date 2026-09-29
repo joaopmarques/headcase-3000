@@ -12,6 +12,8 @@ python3 serve.py
 
 Open http://localhost:5173. There is no build step and no install. Three.js, MediaPipe, and d3-delaunay load from jsDelivr.
 
+Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools`, `emotions`, `chaos`, `food`, `drip`, `media`) to open that tool bar category.
+
 ## How the head works
 
 1. MediaPipe Face Landmarker finds 478 face points in the photo. It runs in the browser, so the photo never leaves the machine.
@@ -35,4 +37,4 @@ Open http://localhost:5173. There is no build step and no install. Three.js, Med
 - `js/food.js`: the snack tray and drag-to-mouth feeding
 - `js/bees.js`: the bee swarm, stings, and swatting
 - `js/emotions.js`: cry, sneeze, wink, love, sick, scream, hiccups, and rage sweat
-- `js/main.js`: scene, tools, actions, rage-o-meter, UI
+- `js/main.js`: scene, tools, actions, rage-o-meter, command wheel, UI

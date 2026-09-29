@@ -115,7 +115,14 @@ function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  camera.position.z = Math.max(6.4, 6.4 * 1.05 / camera.aspect);
+  // Fit the head into the open space between the ticker and the tool bar.
+  const uiTop = 40, uiBottom = w < 700 ? 140 : 170;
+  const avail = Math.max(0.4, (h - uiTop - uiBottom) / h);
+  const k = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  camera.position.z = Math.max(2.8 / (k * avail * 0.8), 2.4 / (k * camera.aspect * 0.62));
+  // Nudge the view so the head sits in the middle of that space.
+  const lift = Math.round((uiBottom - uiTop) / 2);
+  camera.setViewOffset(w, h, 0, lift, w, h);
   camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(stage);
@@ -138,10 +145,30 @@ function addRage(n) {
   st.rage = Math.max(0, Math.min(100, st.rage + n));
   if (st.rage >= 100 && !st.meltdown) meltdown();
 }
+// The sticker on the thermometer. Thresholds are rage percentages.
+const RAGE_LABELS = [
+  [0, 'Zen mode'], [8, "Don't poke the bear"], [22, 'Mildly miffed'], [36, 'Getting spicy'],
+  [50, 'Steam incoming'], [64, 'Seeing red'], [78, 'DEFCON 1'], [90, 'NUCLEAR MELTDOWN'],
+];
+let rageLevelShown = -1;
 function updateRageUI() {
-  $('#rage i').style.width = `${st.rage}%`;
-  $('#rageFace').textContent = st.meltdown ? '🤯' : ['😊', '😐', '😠', '🤬'][Math.min(3, Math.floor(st.rage / 26))];
-  document.body.classList.toggle('angry', st.rage > 70);
+  const pct = st.rage;
+  $('#rage .tube i').style.height = `${pct}%`;
+  $('#rageFace').textContent = st.meltdown ? '🤯' : ['😊', '😐', '😠', '🤬'][Math.min(3, Math.floor(pct / 26))];
+  let lvl = 0;
+  RAGE_LABELS.forEach(([min], i) => { if (pct >= min) lvl = i; });
+  if (st.meltdown) lvl = 8;
+  const label = $('#rageLabel');
+  // Ride the mercury: bulb top (66px) plus the fill height of the 222px tube.
+  label.style.bottom = `${58 + (pct / 100) * 222}px`;
+  if (lvl !== rageLevelShown) {
+    rageLevelShown = lvl;
+    label.textContent = lvl === 8 ? '☢ KABOOM ☢' : RAGE_LABELS[lvl][1];
+    label.className = `rage-label l${lvl}`;
+    void label.offsetWidth;
+    label.classList.add('pop');
+  }
+  document.body.classList.toggle('angry', pct > 70);
 }
 
 function talk(text, opts = {}) {
@@ -608,6 +635,30 @@ canvas.addEventListener('pointerleave', (e) => {
   if (!st.pointer) st.mouse.set(0, 0);
 });
 
+// ---------- command wheel ----------
+const CAT_TITLES = {
+  tools: 'TOOLS OF TORMENT', emotions: 'FEELINGS', chaos: 'CHAOS', food: 'SNACK BAR',
+  drip: 'DRIP', voice: 'VOICE BOX', media: 'PHOTO & VIDEO',
+};
+function setCategory(cat) {
+  $$('[data-cat]').forEach((b) => b.classList.toggle('on', b.dataset.cat === cat));
+  $$('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== cat; });
+  $('#tbTitle').textContent = CAT_TITLES[cat];
+  $('#toolbar .tb-body').scrollLeft = 0;
+}
+$$('[data-cat]').forEach((b) => b.addEventListener('click', () => {
+  sfx.unlock();
+  sfx.squeak(1.1 + Math.random() * 0.4);
+  setCategory(b.dataset.cat);
+}));
+// Mouse wheel scrolls the tool bar sideways.
+$('#toolbar .tb-body').addEventListener('wheel', (e) => {
+  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    e.currentTarget.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }
+}, { passive: false });
+
 // ---------- tool picker ----------
 const CURSORS = { poke: '👉', pinch: '🤏', slap: '🖐️', bonk: '🔨', tickle: '🪶', throw: '🥧', sharpie: '🖍️' };
 function setCursor(emoji) {
@@ -1043,6 +1094,7 @@ const ACTIONS = {
   },
   mimic: toggleMimic,
   rec: toggleRec,
+  snap() { st.snapRequest = true; },
   reset: resetAll,
   newface() { $('#intro').classList.remove('hidden'); },
 };
@@ -1356,9 +1408,31 @@ function frame() {
   fx.update(dt);
   renderer.render(scene, camera);
   if (recorder.active) recorder.draw();
+  if (st.snapRequest) {
+    // Must run right after render, while the WebGL buffer still holds the frame.
+    st.snapRequest = false;
+    recorder.snapshot().then((blob) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `headcase-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    });
+    const f = document.createElement('div');
+    f.className = 'flash';
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 450);
+    sfx.whipCrack();
+    showBubble('Say cheese! 📸', 1200);
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Link options: ?demo loads Default Dave right away, ?cat=voice opens a tool bar category.
+const params = new URLSearchParams(location.search);
+if (params.has('demo')) loadFace(makeDemoFace(), { demo: true });
+if (CAT_TITLES[params.get('cat')]) setCategory(params.get('cat'));
 
 // Debug handle for the curious (and for automated tests).
 window.headcase = { loadFace, get head() { return head; }, get props() { return props; }, st, ACTIONS, camera, stage, mimic, recorder, bees, emotions, fx };

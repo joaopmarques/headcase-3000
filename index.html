@@ -42,117 +42,133 @@
   </script>
 </head>
 <body>
-  <div id="bg"></div>
+  <!-- The whole screen is the stage. The UI floats on top, early-2000s-game style. -->
+  <section id="stage">
+    <canvas id="c"></canvas>
+    <div id="bubble"></div>
+    <div id="hint"></div>
+    <div id="recBadge" class="hidden">● REC</div>
+  </section>
 
-  <header>
-    <h1 class="title" aria-label="HEADCASE 3000">
-      <span>H</span><span>E</span><span>A</span><span>D</span><span>C</span><span>A</span><span>S</span><span>E</span>
-      <em>3000™</em>
-    </h1>
-    <div class="marquee" aria-hidden="true">
-      <div>
-        ★ UPLOAD YOUR FACE ★ RUIN YOUR FACE ★ REPEAT ★ NO REFUNDS ★ 9 OUT OF 10 HEADS AGREE ★ NOT A DOCTOR ★ NOW WITH 40% MORE NOSE ★
-        UPLOAD YOUR FACE ★ RUIN YOUR FACE ★ REPEAT ★ NO REFUNDS ★ 9 OUT OF 10 HEADS AGREE ★ NOT A DOCTOR ★ NOW WITH 40% MORE NOSE ★
-      </div>
+  <div class="ticker" aria-hidden="true">
+    <div>
+      ★ UPLOAD YOUR FACE ★ RUIN YOUR FACE ★ REPEAT ★ NO REFUNDS ★ 9 OUT OF 10 HEADS AGREE ★ NOT A DOCTOR ★ NOW WITH 40% MORE NOSE ★ 100% REAL 3D (KINDA) ★
+      UPLOAD YOUR FACE ★ RUIN YOUR FACE ★ REPEAT ★ NO REFUNDS ★ 9 OUT OF 10 HEADS AGREE ★ NOT A DOCTOR ★ NOW WITH 40% MORE NOSE ★ 100% REAL 3D (KINDA) ★
     </div>
+  </div>
+
+  <header class="logo">
+    <h1 aria-label="HEADCASE 3000">
+      <span>H</span><span>E</span><span>A</span><span>D</span><span>C</span><span>A</span><span>S</span><span>E</span><em>3000™</em>
+    </h1>
   </header>
 
-  <main id="app">
-    <aside id="tools" class="panel">
-      <h2>TOOLS OF<br />TORMENT</h2>
-      <button data-tool="poke"><b>👉</b>POKE</button>
-      <button data-tool="pinch"><b>🤏</b>PINCH &amp; PULL</button>
-      <button data-tool="slap"><b>🖐️</b>SLAP</button>
-      <button data-tool="bonk"><b>🔨</b>BONK</button>
-      <button data-tool="tickle"><b>🪶</b>TICKLE</button>
-      <button data-tool="throw"><b id="ammoIcon">🥧</b>THROW <small id="ammoName">PIE · click again to swap</small></button>
-      <button data-tool="sharpie"><b>🖍️</b>SHARPIE <small><i id="penDot" class="pen-dot"></i> click again for color</small></button>
-    </aside>
-
-    <section id="stage">
-      <canvas id="c"></canvas>
-      <div id="bubble"></div>
-      <div id="rage">
-        <label>RAGE-O-METER</label>
-        <div class="bar"><i></i></div>
-        <span id="rageFace">😊</span>
-      </div>
-      <div id="hint"></div>
-      <div id="recBadge" class="hidden">● REC</div>
-      <div class="sticker s1">100% REAL 3D*</div>
-      <div class="sticker s2">*kinda</div>
-    </section>
-
-    <aside id="actions" class="panel">
-      <h2>DO A THING</h2>
-      <div class="grid">
-        <button data-action="pump" title="Hold to pump"><b>🎈</b>PUMP<small>(hold)</small></button>
-        <button data-action="lie"><b>🤥</b>TELL A LIE</button>
-        <button data-action="melt"><b>🫠</b>MELT</button>
-        <button data-action="twist"><b>🌀</b>TWIST</button>
-        <button data-action="noodle"><b>🍝</b>NOODLE</button>
-        <button data-action="blep"><b>😛</b>BLEP</button>
-        <button data-action="spin"><b>🔄</b>SPIN</button>
-        <button data-action="yeet"><b>🚀</b>YEET</button>
-        <button data-action="disco"><b>🪩</b>DISCO</button>
-        <button data-action="clones"><b>👯</b>CLONES</button>
-        <button data-action="fry"><b>🍟</b>DEEP FRY</button>
-        <button data-action="mimic"><b>🎤</b>MIMIC ME<small>click, talk, click</small></button>
-        <button data-action="rec"><b>🎬</b>REC CLIP<small>6 seconds</small></button>
-        <button data-action="bees"><b>🐝</b>BEES<small>click bees to swat</small></button>
-      </div>
-      <h2>FEELINGS</h2>
-      <div class="grid">
-        <button data-emote="cry"><b>😭</b>CRY</button>
-        <button data-emote="sneeze"><b>🤧</b>SNEEZE</button>
-        <button data-emote="wink"><b>😉</b>WINK</button>
-        <button data-emote="love"><b>😍</b>LOVE</button>
-        <button data-emote="sick"><b>🤢</b>SICK</button>
-        <button data-emote="scream"><b>😱</b>SCREAM</button>
-        <button data-emote="hiccup"><b>🫨</b>HICCUPS</button>
-      </div>
-      <h2>SNACKS</h2>
-      <div id="foodTray" class="tray" title="Drag food into the mouth"></div>
-      <p class="tray-hint">drag it into the mouth ↑</p>
-      <h2>DRIP</h2>
-      <div class="grid">
-        <button data-prop="googly"><b>👀</b>GOOGLY</button>
-        <button data-prop="hat"><b>🥳</b>PARTY HAT</button>
-        <button data-prop="stache"><b>🥸</b>STACHE</button>
-        <button data-prop="shades"><b>😎</b>SHADES</button>
-        <button data-prop="clown"><b>🤡</b>HONKER</button>
-      </div>
-      <div class="grid two">
-        <button data-action="reset" class="danger"><b>🧽</b>UN-RUIN</button>
-        <button data-action="newface" class="danger"><b>📸</b>NEW FACE</button>
-      </div>
-    </aside>
-  </main>
-
-  <footer id="speak">
-    <form id="sayForm">
-      <span class="label">MAKE IT SAY:</span>
-      <input id="sayText" type="text" maxlength="300" placeholder="I am a sentient potato and I have rights" autocomplete="off" />
-      <button type="submit" class="go">🗣️ SAY IT</button>
-      <button type="button" id="nonsense">🎲 NONSENSE</button>
-    </form>
-    <div class="voicebar">
-      <div class="presets">
-        <button data-preset="normal" class="on">😐 normal</button>
-        <button data-preset="chipmunk">🐿️ chipmunk</button>
-        <button data-preset="demon">👹 demon</button>
-        <button data-preset="robot">🤖 robot</button>
-        <button data-preset="auctioneer">🏃 auctioneer</button>
-        <button data-preset="sleepy">😴 sleepy</button>
-      </div>
-      <label class="sel">voice <select id="voice"></select></label>
-      <button type="button" id="randVoice" title="Random voice">🎰</button>
-      <label>pitch <input id="pitch" type="range" min="0" max="2" step="0.05" value="1" /></label>
-      <label>speed <input id="rate" type="range" min="0.3" max="3" step="0.05" value="1" /></label>
-      <label class="check"><input id="talkBack" type="checkbox" checked autocomplete="off" /> talks back</label>
-      <label class="check"><input id="mute" type="checkbox" autocomplete="off" /> mute sfx</label>
+  <div id="rage" aria-label="Rage-o-meter">
+    <div class="rage-title">RAGE-O-METER</div>
+    <div class="thermo">
+      <div class="tube"><i></i><div class="ticks"></div></div>
+      <div class="bulb"><span id="rageFace">😊</span></div>
+      <div id="rageLabel" class="rage-label">Zen mode</div>
     </div>
-  </footer>
+  </div>
+
+  <!-- Quarter-circle command wheel, bottom-left -->
+  <nav id="wheel" aria-label="Menu">
+    <div class="wheel-bg"></div>
+    <button class="orb outer on" data-cat="tools" style="--a: 9deg" title="Tools of Torment">👉</button>
+    <button class="orb outer" data-cat="emotions" style="--a: 27deg" title="Emotions">😭</button>
+    <button class="orb outer" data-cat="chaos" style="--a: 45deg" title="Chaos">🌀</button>
+    <button class="orb outer" data-cat="food" style="--a: 63deg" title="Food">🍔</button>
+    <button class="orb outer" data-cat="drip" style="--a: 81deg" title="Drip">🥳</button>
+    <button class="orb inner" data-cat="voice" style="--a: 22deg" title="Voice">🎙️</button>
+    <button class="orb inner" data-cat="media" style="--a: 68deg" title="Photo &amp; video">🎬</button>
+    <button class="corner c1" data-action="reset" title="Un-ruin: undo all the damage">🧽</button>
+    <button class="corner c2" data-action="newface" title="New face">📸</button>
+  </nav>
+
+  <!-- Tool bar: shows the items of the selected wheel category -->
+  <section id="toolbar">
+    <div class="tb-tab" id="tbTitle">TOOLS OF TORMENT</div>
+    <div class="tb-body">
+      <div class="tb-items" data-panel="tools">
+        <button class="item" data-tool="poke"><b>👉</b>POKE</button>
+        <button class="item" data-tool="pinch"><b>🤏</b>PINCH &amp; PULL</button>
+        <button class="item" data-tool="slap"><b>🖐️</b>SLAP</button>
+        <button class="item" data-tool="bonk"><b>🔨</b>BONK</button>
+        <button class="item" data-tool="tickle"><b>🪶</b>TICKLE</button>
+        <button class="item" data-tool="throw"><b id="ammoIcon">🥧</b>THROW<small id="ammoName">PIE · click again</small></button>
+        <button class="item" data-tool="sharpie"><b>🖍️</b>SHARPIE<small><i id="penDot" class="pen-dot"></i> click again</small></button>
+      </div>
+
+      <div class="tb-items" data-panel="emotions" hidden>
+        <button class="item" data-emote="cry"><b>😭</b>CRY</button>
+        <button class="item" data-emote="sneeze"><b>🤧</b>SNEEZE</button>
+        <button class="item" data-emote="wink"><b>😉</b>WINK</button>
+        <button class="item" data-emote="love"><b>😍</b>LOVE</button>
+        <button class="item" data-emote="sick"><b>🤢</b>SICK</button>
+        <button class="item" data-emote="scream"><b>😱</b>SCREAM</button>
+        <button class="item" data-emote="hiccup"><b>🫨</b>HICCUPS</button>
+      </div>
+
+      <div class="tb-items" data-panel="chaos" hidden>
+        <button class="item" data-action="pump" title="Hold to pump"><b>🎈</b>PUMP<small>hold it</small></button>
+        <button class="item" data-action="lie"><b>🤥</b>TELL A LIE</button>
+        <button class="item" data-action="melt"><b>🫠</b>MELT</button>
+        <button class="item" data-action="twist"><b>🌀</b>TWIST</button>
+        <button class="item" data-action="noodle"><b>🍝</b>NOODLE</button>
+        <button class="item" data-action="blep"><b>😛</b>BLEP</button>
+        <button class="item" data-action="spin"><b>🔄</b>SPIN</button>
+        <button class="item" data-action="yeet"><b>🚀</b>YEET</button>
+        <button class="item" data-action="bees"><b>🐝</b>BEES<small>click to swat</small></button>
+        <button class="item" data-action="disco"><b>🪩</b>DISCO</button>
+        <button class="item" data-action="clones"><b>👯</b>CLONES</button>
+        <button class="item" data-action="fry"><b>🍟</b>DEEP FRY</button>
+      </div>
+
+      <div class="tb-items" data-panel="food" hidden>
+        <div id="foodTray" class="tray" title="Drag food into the mouth"></div>
+        <p class="tb-note">⬅ drag a snack<br />into the mouth</p>
+      </div>
+
+      <div class="tb-items" data-panel="drip" hidden>
+        <button class="item" data-prop="googly"><b>👀</b>GOOGLY</button>
+        <button class="item" data-prop="hat"><b>🥳</b>PARTY HAT</button>
+        <button class="item" data-prop="stache"><b>🥸</b>STACHE</button>
+        <button class="item" data-prop="shades"><b>😎</b>SHADES</button>
+        <button class="item" data-prop="clown"><b>🤡</b>HONKER</button>
+      </div>
+
+      <div class="tb-items voice" data-panel="voice" hidden>
+        <form id="sayForm">
+          <input id="sayText" type="text" maxlength="300" placeholder="I am a sentient potato and I have rights" autocomplete="off" />
+          <button type="submit" class="pill go">🗣️ SAY IT</button>
+          <button type="button" id="nonsense" class="pill">🎲 NONSENSE</button>
+          <button type="button" class="pill mimic" data-action="mimic"><b>🎤</b>MIMIC ME<small>click, talk, click</small></button>
+        </form>
+        <div class="voicebar">
+          <div class="presets">
+            <button type="button" data-preset="normal" class="on">😐 normal</button>
+            <button type="button" data-preset="chipmunk">🐿️ chipmunk</button>
+            <button type="button" data-preset="demon">👹 demon</button>
+            <button type="button" data-preset="robot">🤖 robot</button>
+            <button type="button" data-preset="auctioneer">🏃 auctioneer</button>
+            <button type="button" data-preset="sleepy">😴 sleepy</button>
+          </div>
+          <label class="sel">voice <select id="voice"></select></label>
+          <button type="button" id="randVoice" title="Random voice">🎰</button>
+          <label>pitch <input id="pitch" type="range" min="0" max="2" step="0.05" value="1" /></label>
+          <label>speed <input id="rate" type="range" min="0.3" max="3" step="0.05" value="1" /></label>
+          <label class="check"><input id="talkBack" type="checkbox" checked autocomplete="off" /> talks back</label>
+          <label class="check"><input id="mute" type="checkbox" autocomplete="off" /> mute sfx</label>
+        </div>
+      </div>
+
+      <div class="tb-items" data-panel="media" hidden>
+        <button class="item" data-action="rec"><b>🎬</b>REC CLIP<small>6 seconds</small></button>
+        <button class="item" data-action="snap"><b>📷</b>SNAPSHOT<small>save a PNG</small></button>
+      </div>
+    </div>
+  </section>
 
   <div id="intro" class="overlay">
     <div class="card">
