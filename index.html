@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HEADCASE 3000</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤪</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Chewy&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="bg"></div>
+
+  <header>
+    <h1 class="title" aria-label="HEADCASE 3000">
+      <span>H</span><span>E</span><span>A</span><span>D</span><span>C</span><span>A</span><span>S</span><span>E</span>
+      <em>3000™</em>
+    </h1>
+    <div class="marquee" aria-hidden="true">
+      <div>
+        ★ UPLOAD YOUR FACE ★ RUIN YOUR FACE ★ REPEAT ★ NO REFUNDS ★ 9 OUT OF 10 HEADS AGREE ★ NOT A DOCTOR ★ NOW WITH 40% MORE NOSE ★
+        UPLOAD YOUR FACE ★ RUIN YOUR FACE ★ REPEAT ★ NO REFUNDS ★ 9 OUT OF 10 HEADS AGREE ★ NOT A DOCTOR ★ NOW WITH 40% MORE NOSE ★
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <aside id="tools" class="panel">
+      <h2>TOOLS OF<br />TORMENT</h2>
+      <button data-tool="poke"><b>👉</b>POKE</button>
+      <button data-tool="pinch"><b>🤏</b>PINCH &amp; PULL</button>
+      <button data-tool="slap"><b>🖐️</b>SLAP</button>
+      <button data-tool="bonk"><b>🔨</b>BONK</button>
+      <button data-tool="tickle"><b>🪶</b>TICKLE</button>
+    </aside>
+
+    <section id="stage">
+      <canvas id="c"></canvas>
+      <div id="bubble"></div>
+      <div id="rage">
+        <label>RAGE-O-METER</label>
+        <div class="bar"><i></i></div>
+        <span id="rageFace">😊</span>
+      </div>
+      <div id="hint"></div>
+      <div class="sticker s1">100% REAL 3D*</div>
+      <div class="sticker s2">*kinda</div>
+    </section>
+
+    <aside id="actions" class="panel">
+      <h2>DO A THING</h2>
+      <div class="grid">
+        <button data-action="pump" title="Hold to pump"><b>🎈</b>PUMP<small>(hold)</small></button>
+        <button data-action="lie"><b>🤥</b>TELL A LIE</button>
+        <button data-action="melt"><b>🫠</b>MELT</button>
+        <button data-action="twist"><b>🌀</b>TWIST</button>
+        <button data-action="noodle"><b>🍝</b>NOODLE</button>
+        <button data-action="blep"><b>😛</b>BLEP</button>
+        <button data-action="spin"><b>🔄</b>SPIN</button>
+        <button data-action="yeet"><b>🚀</b>YEET</button>
+        <button data-action="disco"><b>🪩</b>DISCO</button>
+        <button data-action="clones"><b>👯</b>CLONES</button>
+        <button data-action="fry"><b>🍟</b>DEEP FRY</button>
+      </div>
+      <h2>DRIP</h2>
+      <div class="grid">
+        <button data-prop="googly"><b>👀</b>GOOGLY</button>
+        <button data-prop="hat"><b>🥳</b>PARTY HAT</button>
+        <button data-prop="stache"><b>🥸</b>STACHE</button>
+        <button data-prop="shades"><b>😎</b>SHADES</button>
+        <button data-prop="clown"><b>🤡</b>HONKER</button>
+      </div>
+      <div class="grid two">
+        <button data-action="reset" class="danger"><b>🧽</b>UN-RUIN</button>
+        <button data-action="newface" class="danger"><b>📸</b>NEW FACE</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer id="speak">
+    <form id="sayForm">
+      <span class="label">MAKE IT SAY:</span>
+      <input id="sayText" type="text" maxlength="300" placeholder="I am a sentient potato and I have rights" autocomplete="off" />
+      <button type="submit" class="go">🗣️ SAY IT</button>
+      <button type="button" id="nonsense">🎲 NONSENSE</button>
+    </form>
+    <div class="voicebar">
+      <div class="presets">
+        <button data-preset="normal" class="on">😐 normal</button>
+        <button data-preset="chipmunk">🐿️ chipmunk</button>
+        <button data-preset="demon">👹 demon</button>
+        <button data-preset="robot">🤖 robot</button>
+        <button data-preset="auctioneer">🏃 auctioneer</button>
+        <button data-preset="sleepy">😴 sleepy</button>
+      </div>
+      <label class="sel">voice <select id="voice"></select></label>
+      <button type="button" id="randVoice" title="Random voice">🎰</button>
+      <label>pitch <input id="pitch" type="range" min="0" max="2" step="0.05" value="1" /></label>
+      <label>speed <input id="rate" type="range" min="0.3" max="3" step="0.05" value="1" /></label>
+      <label class="check"><input id="talkBack" type="checkbox" checked autocomplete="off" /> talks back</label>
+      <label class="check"><input id="mute" type="checkbox" autocomplete="off" /> mute sfx</label>
+    </div>
+  </footer>
+
+  <div id="intro" class="overlay">
+    <div class="card">
+      <button id="closeIntro" class="x" aria-label="Close">✖</button>
+      <h2>FEED ME<br />A FACE</h2>
+      <p>Upload a photo (face looking at the camera works best). We turn it into a 3D head. Then you do crimes to it.</p>
+      <div class="drop" id="pickFile">
+        <span class="big">🖼️</span>
+        <span>CLICK or DROP a photo here</span>
+        <small>(or paste one, we are not picky)</small>
+      </div>
+      <input id="file" type="file" accept="image/*" hidden />
+      <div class="row">
+        <button id="webcam">📸 USE WEBCAM</button>
+        <button id="demo">🤠 USE DEFAULT DAVE</button>
+      </div>
+      <p class="fine">Your photo never leaves your browser. Face detection runs locally. Dave consented.</p>
+    </div>
+  </div>
+
+  <div id="loading" class="overlay hidden">
+    <div class="spinner">🤪</div>
+    <div id="loadingText">Measuring your nostrils…</div>
+  </div>
+
+  <div id="cam" class="overlay hidden">
+    <div class="card cam">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <div class="row">
+        <button id="camSnap">📸 SNAP!</button>
+        <button id="camCancel">nah</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dropHint">DROP IT LIKE IT'S HOT 🔥</div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
