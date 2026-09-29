@@ -1,5 +1,6 @@
 // Clip recorder: films the stage (3D canvas + speech bubble + watermark) with app audio.
 import { tapStream } from './audio.js';
+import { SITE_HOST } from './site.js';
 
 const TYPES = [
   ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'mp4'],
@@ -114,7 +115,7 @@ export class ClipRecorder {
     g.textAlign = 'right';
     g.lineWidth = 5 * k;
     g.strokeStyle = '#111';
-    const wm = 'HEADCASE 4000™ • headcase-3000.vercel.app';
+    const wm = `HEADCASE 4000™ • ${SITE_HOST}`;
     g.strokeText(wm, W - 14 * k, H - 12 * k);
     g.fillStyle = '#ffe600';
     g.fillText(wm, W - 14 * k, H - 12 * k);

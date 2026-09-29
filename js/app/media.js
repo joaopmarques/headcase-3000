@@ -4,6 +4,7 @@ import { ClipRecorder } from '../recorder.js';
 import * as sfx from '../audio.js';
 import { voiceState, stopSpeaking } from '../voice.js';
 import { line } from '../lines.js';
+import { SITE_URL } from '../site.js';
 import { $, now, app, st } from './ctx.js';
 import { canvas, stage } from './stage.js';
 
@@ -85,7 +86,12 @@ function showClip(blob, ext) {
   const share = $('#clipShare');
   const canShare = !!navigator.canShare?.({ files: [file] });
   share.classList.toggle('hidden', !canShare);
-  share.onclick = () => navigator.share({ files: [file], title: 'HEADCASE 4000' }).catch(() => {});
+  // Some share targets drop the text when a file comes with it, so the watermark carries the address too.
+  share.onclick = () => navigator.share({
+    files: [file],
+    title: 'HEADCASE 4000',
+    text: `Look what I did to this face. Do your own at ${SITE_URL}`,
+  }).catch(() => {});
   $('#clip').classList.remove('hidden');
   $('#clipVideo').play().catch(() => {});
 }

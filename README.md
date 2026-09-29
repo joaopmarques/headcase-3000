@@ -34,6 +34,7 @@ Add `?demo` to skip the intro and load Default Dave. Add `?cat=voice` (or `tools
 - `js/paint.js`: food splats, drips, and sharpie strokes on a paint layer that wraps the head
 - `js/mimic.js`: records the mic and plays it back in a silly voice with lip-sync
 - `js/recorder.js`: records 6-second clips of the stage with sound
+- `js/site.js`: the public address (headcase.jpmarqu.es), the one place it lives
 - `js/food.js`: the snack tray and drag-to-mouth feeding
 - `js/bees.js`: the bee swarm, stings, and swatting
 - `js/emotions.js`: cry, sneeze, wink, love, sick, scream, hiccups, and rage sweat
